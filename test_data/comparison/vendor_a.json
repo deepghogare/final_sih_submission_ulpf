@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-09-02T17:30:15Z",
+  "src_ip": "192.168.1.20",
+  "dst_ip": "10.0.0.5",
+  "src_port": 54321,
+  "dst_port": 443,
+  "action": "DENY",
+  "severity": "medium",
+  "proto": "TCP",
+  "vendor": "VendorA",
+  "product": "FirewallA",
+  "bytes_transferred": 1024,
+  "packets": 10,
+  "custom_vendor_flag": "FLAG_X99"
+}

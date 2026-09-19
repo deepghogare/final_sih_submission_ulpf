@@ -1,0 +1,44 @@
+# ==============================================================================
+# Vendor B Log Mapping Configuration
+# ==============================================================================
+vendor: "VendorB"
+product: "FirewallB"
+device_type: "firewall"
+mapping_version: "1.0"
+
+# Detection signature to identify Vendor B automatically
+detection:
+  match_fields:
+    - "sourceAddress"
+    - "destinationAddress"
+  header_keywords:
+    - "VendorB"
+    - "FW-B"
+
+# Field translation map: vendor_field -> universal_schema_target
+fields:
+  sourceAddress: "source.ip"
+  sourcePort: "source.port"
+  sourceHostname: "source.hostname"
+  sourceMacAddress: "source.mac"
+
+  destinationAddress: "destination.ip"
+  destinationPort: "destination.port"
+  destinationHostname: "destination.hostname"
+
+  transportProtocol: "network.protocol"
+  trafficDirection: "network.direction"
+  bytesTotal: "network.bytes"
+  packetCount: "network.packets"
+
+  decision: "event.action"
+  priority: "event.severity"
+  classification: "event.category"
+  eventTime: "event.timestamp"
+
+  devVendor: "device.vendor"
+  devName: "device.product"
+  devHostname: "device.hostname"
+
+  accountUser: "user.name"
+  accountId: "user.id"

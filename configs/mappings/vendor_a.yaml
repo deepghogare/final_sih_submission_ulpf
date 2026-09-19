@@ -1,0 +1,45 @@
+# ==============================================================================
+# Vendor A Log Mapping Configuration
+# ==============================================================================
+vendor: "VendorA"
+product: "FirewallA"
+device_type: "firewall"
+mapping_version: "1.0"
+
+# Detection signature to identify Vendor A automatically
+detection:
+  match_fields:
+    - "src_ip"
+    - "dst_ip"
+  header_keywords:
+    - "VendorA"
+    - "FW-A"
+
+# Field translation map: vendor_field -> universal_schema_target
+fields:
+  src_ip: "source.ip"
+  src_port: "source.port"
+  src_host: "source.hostname"
+  src_mac: "source.mac"
+
+  dst_ip: "destination.ip"
+  dst_port: "destination.port"
+  dst_host: "destination.hostname"
+
+  proto: "network.protocol"
+  direction: "network.direction"
+  bytes_transferred: "network.bytes"
+  packets: "network.packets"
+
+  action: "event.action"
+  severity: "event.severity"
+  event_type: "event.type"
+  category: "event.category"
+  timestamp: "event.timestamp"
+
+  vendor: "device.vendor"
+  product: "device.product"
+  device_id: "device.hostname"
+
+  user_name: "user.name"
+  user_id: "user.id"

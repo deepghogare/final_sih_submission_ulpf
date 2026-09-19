@@ -1,0 +1,44 @@
+[
+  {
+    "timestamp": "2026-09-05T01:20:00Z",
+    "src_ip": "198.51.100.99",
+    "dst_ip": "10.0.0.50",
+    "src_port": 58921,
+    "dst_port": 443,
+    "action": "DENY",
+    "severity": "high",
+    "proto": "TCP",
+    "vendor": "AWS-WAF",
+    "product": "AppGateway",
+    "bytes_transferred": 2048,
+    "packets": 15
+  },
+  {
+    "timestamp": "2026-09-05T01:20:05Z",
+    "src_ip": "192.168.1.15",
+    "dst_ip": "10.0.0.80",
+    "src_port": 50112,
+    "dst_port": 80,
+    "action": "ALLOW",
+    "severity": "info",
+    "proto": "TCP",
+    "vendor": "Nginx",
+    "product": "ReverseProxy",
+    "bytes_transferred": 40960,
+    "packets": 42
+  },
+  {
+    "timestamp": "2026-09-05T01:20:10Z",
+    "src_ip": "203.0.113.7",
+    "dst_ip": "10.0.0.22",
+    "src_port": 43210,
+    "dst_port": 22,
+    "action": "DROP",
+    "severity": "critical",
+    "proto": "TCP",
+    "vendor": "CloudArmor",
+    "product": "EdgeDefense",
+    "bytes_transferred": 512,
+    "packets": 4
+  }
+]

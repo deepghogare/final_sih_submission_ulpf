@@ -1,0 +1,4 @@
+{"acme_src": "198.51.100.33", "acme_dst": "10.0.0.1", "acme_sport": 51234, "acme_dport": 80, "acme_disposition": "BLOCK", "acme_threat_level": "critical", "acme_proto": "TCP", "vendor": "AcmeSecurity", "attack_type": "SQL_Injection_Bypass"}
+{"acme_src": "198.51.100.44", "acme_dst": "10.0.0.2", "acme_sport": 51235, "acme_dport": 443, "acme_disposition": "ALLOW", "acme_threat_level": "low", "acme_proto": "TCP", "vendor": "AcmeSecurity", "attack_type": "Normal_Traffic"}
+{"acme_src": "203.0.113.99", "acme_dst": "10.0.0.99", "acme_sport": 60123, "acme_dport": 3389, "acme_disposition": "DROP", "acme_threat_level": "high", "acme_proto": "TCP", "vendor": "AcmeSecurity", "attack_type": "Remote_Code_Execution"}
+{"acme_src": "185.220.101.77", "acme_dst": "10.0.0.80", "acme_sport": 48120, "acme_dport": 8080, "acme_disposition": "BLOCK", "acme_threat_level": "critical", "acme_proto": "TCP", "vendor": "AcmeSecurity", "attack_type": "Log4j_JNDI_Exploit"}

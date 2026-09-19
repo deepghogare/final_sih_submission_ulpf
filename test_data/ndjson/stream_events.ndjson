@@ -1,0 +1,3 @@
+{"timestamp":"2026-09-02T17:31:00Z","src_ip":"192.168.1.30","dst_ip":"10.0.0.12","src_port":61000,"dst_port":22,"action":"BLOCK","severity":"high","proto":"TCP","user":"root"}
+{"timestamp":"2026-09-02T17:31:01Z","src_ip":"192.168.1.31","dst_ip":"10.0.0.15","src_port":61001,"dst_port":443,"action":"ALLOW","severity":"low","proto":"TCP","user":"admin"}
+{"timestamp":"2026-09-02T17:31:02Z","src_ip":"192.168.1.32","dst_ip":"10.0.0.20","src_port":61002,"dst_port":8080,"action":"DENY","severity":"medium","proto":"TCP","user":"guest"}

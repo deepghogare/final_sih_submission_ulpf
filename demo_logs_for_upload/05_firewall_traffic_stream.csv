@@ -1,0 +1,6 @@
+timestamp,src_ip,dst_ip,src_port,dst_port,protocol,action,severity,vendor,bytes
+2026-09-06T04:32:00Z,198.51.100.12,10.0.0.50,44123,445,TCP,DENY,critical,Fortinet,0
+2026-09-06T04:32:01Z,192.168.1.100,10.0.0.20,52100,443,TCP,ALLOW,info,Fortinet,8192
+2026-09-06T04:32:02Z,203.0.113.55,10.0.0.50,44124,3389,TCP,DROP,high,CheckPoint,0
+2026-09-06T04:32:03Z,185.220.101.88,10.0.0.22,39120,22,TCP,DENY,high,CheckPoint,0
+2026-09-06T04:32:04Z,10.0.0.15,8.8.8.8,55231,53,UDP,ALLOW,info,Cisco,128

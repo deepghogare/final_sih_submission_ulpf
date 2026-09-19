@@ -1,0 +1,38 @@
+# ==============================================================================
+# Universal Log Pre-processing Framework (ULPF) - Global Configuration
+# ==============================================================================
+
+app:
+  name: "ULPF - Universal Log Pre-processing Framework"
+  version: "1.0.0"
+  organization: "NTRO - SIH 2026 Problem 26156"
+  log_level: "INFO"
+
+pipeline:
+  # Max log file size in MB (prevents memory exhaustion)
+  max_file_size_mb: 100
+  # Max single line/event length in KB (prevents buffer DOS)
+  max_line_length_kb: 64
+  # Default output format: "jsonl" (preferred) or "json_array"
+  default_output_format: "jsonl"
+  # Deduplication cache capacity
+  dedup_cache_size: 100000
+  # Stop processing file on single event failure (false = dead-letter & continue)
+  stop_on_error: false
+  # Enable offline enrichment by default
+  enable_enrichment: false
+
+paths:
+  output_dir: "output"
+  failed_events_dir: "failed_events"
+  plugins_dir: "plugins"
+  mappings_dir: "configs/mappings"
+  asset_db_path: "configs/local_assets.json"
+
+integrity:
+  hash_algorithm: "sha256"
+  verify_on_ingest: true
+
+metrics:
+  enabled: true
+  export_interval_seconds: 10

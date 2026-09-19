@@ -1,0 +1,8 @@
+date=2026-09-06 time=04:30:00 devname="FGT-HQ-DC1" devid="FGT60D12345" type="traffic" subtype="forward" level="warning" action="deny" srcip=198.51.100.89 dstip=10.0.0.12 srcport=54123 dstport=445 proto=6 msg="Policy violation: unauthorized SMB scan"
+date=2026-09-06 time=04:30:01 devname="FGT-HQ-DC1" devid="FGT60D12345" type="traffic" subtype="forward" level="notice" action="allow" srcip=192.168.1.100 dstip=10.0.0.25 srcport=52341 dstport=443 proto=6 msg="Normal HTTPS web session"
+<134>1 2026-09-06T04:30:02Z fw01.corp Cisco - - - %ASA-4-106023: Deny tcp src outside:203.0.113.44/41200 dst inside:10.0.0.5/22 by access-group "perimeter_in" action=DENY src=203.0.113.44 dst=10.0.0.5 sport=41200 dport=22 proto=TCP
+<134>1 2026-09-06T04:30:03Z fw01.corp Cisco - - - %ASA-6-302013: Built inbound TCP connection for outside:172.16.5.10/50123 to inside:10.0.0.80/80 action=ALLOW src=172.16.5.10 dst=10.0.0.80 sport=50123 dport=80 proto=TCP
+Sep  6 04:30:04 auth-server sshd[9842]: Failed password for invalid user root from 185.220.101.9 port 39812 ssh2 action=DENY src=185.220.101.9 dst=10.0.0.2 sport=39812 dport=22
+Sep  6 04:30:05 auth-server sshd[9843]: Failed password for invalid user admin from 185.220.101.9 port 39814 ssh2 action=DENY src=185.220.101.9 dst=10.0.0.2 sport=39814 dport=22
+Sep  6 04:30:06 auth-server sudo: pam_unix(sudo:auth): authentication failure; logname=operator uid=1001 euid=0 tty=/dev/pts/1 ruser=operator rhost= user=root action=DENY src=10.0.0.50
+Sep  6 04:30:07 auth-server sshd[9844]: Accepted publickey for secadmin from 10.0.0.250 port 51234 ssh2 action=ALLOW src=10.0.0.250 dst=10.0.0.2 sport=51234 dport=22

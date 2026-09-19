@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Events>
+  <Event>
+    <System>
+      <Provider Name="Microsoft-Windows-Security-Auditing" Guid="{54849625-5478-4994-A5BA-3E3B0328C30D}" />
+      <EventID>4624</EventID>
+      <Version>2</Version>
+      <Level>0</Level>
+      <TimeCreated SystemTime="2026-09-02T17:50:00Z" />
+      <Computer>DC-01.corp.internal</Computer>
+    </System>
+    <EventData>
+      <Data Name="TargetUserName">Administrator</Data>
+      <Data Name="IpAddress">192.168.1.15</Data>
+      <Data Name="IpPort">52341</Data>
+      <Data Name="LogonType">3</Data>
+      <Data Name="action">login</Data>
+    </EventData>
+  </Event>
+  <Event>
+    <System>
+      <Provider Name="Microsoft-Windows-Security-Auditing" Guid="{54849625-5478-4994-A5BA-3E3B0328C30D}" />
+      <EventID>4625</EventID>
+      <Version>2</Version>
+      <Level>0</Level>
+      <TimeCreated SystemTime="2026-09-02T17:50:05Z" />
+      <Computer>DC-01.corp.internal</Computer>
+    </System>
+    <EventData>
+      <Data Name="TargetUserName">guest</Data>
+      <Data Name="IpAddress">192.168.1.88</Data>
+      <Data Name="IpPort">54122</Data>
+      <Data Name="LogonType">3</Data>
+      <Data Name="action">deny</Data>
+    </EventData>
+  </Event>
+</Events>

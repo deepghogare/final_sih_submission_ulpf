@@ -1,0 +1,30 @@
+# ==============================================================================
+# Palo Alto PAN-OS Mapping Configuration
+# ==============================================================================
+vendor: "Palo Alto Networks"
+product: "PAN-OS"
+device_type: "firewall"
+mapping_version: "1.0"
+
+detection:
+  match_fields:
+    - "pan_device_name"
+    - "pan_threat_id"
+  header_keywords:
+    - "PAN-OS"
+    - "PaloAlto"
+
+fields:
+  src: "source.ip"
+  sport: "source.port"
+  srcloc: "source.hostname"
+  dst: "destination.ip"
+  dport: "destination.port"
+  dstloc: "destination.hostname"
+  proto: "network.protocol"
+  act: "event.action"
+  action: "event.action"
+  severity: "event.severity"
+  bytes: "network.bytes"
+  packets: "network.packets"
+  device_name: "device.hostname"

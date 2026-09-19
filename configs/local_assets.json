@@ -1,0 +1,27 @@
+{
+  "192.168.1.20": {
+    "hostname": "client-01",
+    "mac": "AA:BB:CC:DD:EE:FF",
+    "asset_type": "workstation",
+    "owner": "Finance Team",
+    "criticality": "medium"
+  },
+  "10.0.0.5": {
+    "hostname": "server-01",
+    "asset_type": "database_server",
+    "owner": "IT Infrastructure",
+    "criticality": "high"
+  },
+  "10.10.10.1": {
+    "hostname": "FW-01",
+    "asset_type": "perimeter_firewall",
+    "owner": "Security Operations",
+    "criticality": "critical"
+  },
+  "172.16.50.100": {
+    "hostname": "vpn-gateway-01",
+    "asset_type": "network_device",
+    "owner": "Network Engineering",
+    "criticality": "high"
+  }
+}

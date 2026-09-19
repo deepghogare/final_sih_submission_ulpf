@@ -1,0 +1,5 @@
+<!-- ULPF Universal Log Parsing Framework Custom Decoder -->
+<decoder name="ulpf_root">
+  <prematch>^{"event_id":</prematch>
+  <plugin_decoder>JSON_Decoder</plugin_decoder>
+</decoder>

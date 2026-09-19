@@ -1,0 +1,2 @@
+LEEF:1.0|IBM|Security Network IPS|4.1|4000001|src=192.168.1.12	dst=10.0.0.4	srcPort=43210	dstPort=80	proto=TCP	action=BLOCK	sev=6
+LEEF:2.0|Microsoft|Windows Defender ATP|1.0|SuspiciousProcess|^|src=192.168.1.14^dst=10.0.0.6^srcPort=55123^dstPort=443^proto=TCP^action=ALERT^sev=8

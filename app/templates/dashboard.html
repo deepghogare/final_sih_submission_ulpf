@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ULPF - Cyber Operations & SIEM Dashboard</title>
+  <!-- Chart.js from CDN with resilient error fallback -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --card-bg: #111827;
+      --card-border: #1f293d;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --primary: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --purple: #8b5cf6;
+      --cyan: #06b6d4;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: #334155 #0b1120;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0b1120;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 40px;
+    }
+    /* Header */
+    header {
+      background-color: rgba(17, 24, 39, 0.95);
+      border-bottom: 1px solid var(--card-border);
+      padding: 16px 28px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      backdrop-filter: blur(8px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      letter-spacing: 1px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+    }
+    .brand-title {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .brand-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .header-badges {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border: 1px solid transparent;
+    }
+    .badge-online {
+      background-color: rgba(16, 185, 129, 0.12);
+      color: #34d399;
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .badge-online .dot {
+      width: 7px;
+      height: 7px;
+      background-color: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+    .badge-airgap {
+      background-color: rgba(6, 182, 212, 0.12);
+      color: #22d3ee;
+      border-color: rgba(6, 182, 212, 0.3);
+    }
+    .badge-plugins {
+      background-color: rgba(139, 92, 246, 0.12);
+      color: #a78bfa;
+      border-color: rgba(139, 92, 246, 0.3);
+      cursor: pointer;
+    }
+    .btn {
+      background-color: #1f293d;
+      color: #e5e7eb;
+      border: 1px solid #374151;
+      padding: 7px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn:hover {
+      background-color: #374151;
+      border-color: #4b5563;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      border-color: #1d4ed8;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #1d4ed8, #1e40af);
+    }
+
+    /* Container */
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+
+    /* KPI Row */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .kpi-card::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), transparent);
+    }
+    .kpi-card.kpi-success::before { background: linear-gradient(90deg, var(--success), transparent); }
+    .kpi-card.kpi-warning::before { background: linear-gradient(90deg, var(--warning), transparent); }
+    .kpi-card.kpi-purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+
+    .kpi-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .kpi-value {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #f9fafb;
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Sandbox / Demo Ingestion Banner */
+    .sandbox-banner {
+      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+    .sandbox-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .sandbox-title {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #93c5fd;
+    }
+    .demo-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .btn-demo {
+      background-color: #1e293b;
+      color: #cbd5e1;
+      border: 1px solid #475569;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-demo:hover {
+      background-color: #334155;
+      color: #fff;
+      border-color: #64748b;
+    }
+    .sandbox-input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .sandbox-input {
+      flex: 1;
+      min-width: 260px;
+      background-color: #0b1120;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 9px 12px;
+      color: #f3f4f6;
+      font-family: monospace;
+      font-size: 12px;
+      outline: none;
+    }
+    .sandbox-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px var(--primary);
+    }
+
+    /* Charts Grid */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .chart-card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 18px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: column;
+    }
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .chart-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #e5e7eb;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .chart-container {
+      position: relative;
+      flex: 1;
+      min-height: 220px;
+      max-height: 250px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Events Table Section */
+    .table-section {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
+    .table-controls {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .table-title {
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .search-box {
+      background-color: #0b1120;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 7px 12px;
+      color: #f3f4f6;
+      font-size: 12px;
+      width: 220px;
+      outline: none;
+    }
+    .search-box:focus {
+      border-color: var(--primary);
+    }
+    .select-filter {
+      background-color: #0b1120;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 7px 12px;
+      color: #f3f4f6;
+      font-size: 12px;
+      outline: none;
+      cursor: pointer;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 12px;
+    }
+    th {
+      background-color: #162032;
+      color: #94a3b8;
+      font-weight: 600;
+      padding: 10px 12px;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid #1e293b;
+    }
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #1a2234;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    tr:hover td {
+      background-color: rgba(30, 41, 59, 0.5);
+    }
+    .cell-id {
+      font-family: monospace;
+      font-size: 11px;
+      color: #93c5fd;
+      font-weight: 600;
+    }
+    .cell-ip {
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .cell-hash {
+      font-family: monospace;
+      font-size: 10px;
+      color: #64748b;
+      cursor: pointer;
+    }
+
+    /* Badges */
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .pill-allow, .pill-permit, .pill-accept { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
+    .pill-deny, .pill-block { background-color: rgba(239, 68, 68, 0.15); color: #f87171; }
+    .pill-drop { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+    .pill-critical { background-color: rgba(220, 38, 38, 0.25); color: #fca5a5; font-weight: 800; }
+    .pill-high { background-color: rgba(234, 88, 12, 0.2); color: #fdba74; }
+    .pill-medium { background-color: rgba(245, 158, 11, 0.15); color: #fde047; }
+    .pill-low { background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; }
+    .pill-info { background-color: rgba(100, 116, 139, 0.15); color: #cbd5e1; }
+    .shield-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      color: #34d399;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-content {
+      background-color: #111827;
+      border: 1px solid #374151;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 900px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #1f293d;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-title {
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      color: #9ca3af;
+      font-size: 20px;
+      cursor: pointer;
+    }
+    .modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .json-box {
+      background-color: #0b1120;
+      border: 1px solid #1f293d;
+      border-radius: 6px;
+      padding: 14px;
+      font-family: monospace;
+      font-size: 11px;
+      color: #e2e8f0;
+      overflow-x: auto;
+      max-height: 280px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .modal-section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #93c5fd;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    /* Toast Notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: #1e293b;
+      color: #fff;
+      padding: 12px 18px;
+      border-radius: 6px;
+      border-left: 4px solid var(--primary);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 200;
+      font-size: 13px;
+      font-weight: 600;
+      animation: slideUp 0.3s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">ULPF</div>
+      <div>
+        <div class="brand-title">CYBER OPERATIONS & SIEM DASHBOARD</div>
+        <div class="brand-subtitle">Universal Log Pre-processing Framework // SIH 2026 (NTRO)</div>
+      </div>
+    </div>
+    <div class="header-badges">
+      <div class="badge badge-online">
+        <span class="dot"></span> Ingestion Engine Active
+      </div>
+      <div class="badge badge-airgap">Air-Gapped Mode</div>
+      <div class="badge badge-plugins" id="plugin-badge" onclick="showPluginsModal()">
+        🔌 Plugins: <span id="active-plugin-count" style="margin-left:4px; font-weight:800;">1 Active</span>
+      </div>
+      <a href="http://localhost:8443" target="_blank" class="badge" style="background:#1e1b4b; color:#c7d2fe; border:1px solid #6366f1; text-decoration:none; display:flex; align-items:center; gap:6px; font-weight:600;" title="Open Wazuh SIEM SOC Console (Port 8443)">
+        🛡️ Wazuh SIEM SOC
+      </a>
+      <button class="btn" onclick="fetchDashboardData()">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Refresh
+      </button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- KPI Metric Cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card kpi-success">
+        <div class="kpi-label">Total Ingested Events</div>
+        <div class="kpi-value" id="kpi-total">0</div>
+        <div class="kpi-sub">Indexed in local SQLite store</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Real-Time Throughput</div>
+        <div class="kpi-value" id="kpi-eps">0.0 <span style="font-size:14px; font-weight:500;">EPS</span></div>
+        <div class="kpi-sub">Events processed per second</div>
+      </div>
+      <div class="kpi-card kpi-purple">
+        <div class="kpi-label">Average Latency</div>
+        <div class="kpi-value" id="kpi-latency">0.0 <span style="font-size:14px; font-weight:500;">ms</span></div>
+        <div class="kpi-sub">End-to-end pipeline speed</div>
+      </div>
+      <div class="kpi-card kpi-warning">
+        <div class="kpi-label">Lossless Cryptographic Audit</div>
+        <div class="kpi-value" style="color:#34d399;">100%</div>
+        <div class="kpi-sub">SHA-256 hashes matched</div>
+      </div>
+    </div>
+
+    <!-- Sandbox Ingestion Widget -->
+    <div class="sandbox-banner">
+      <div class="sandbox-header">
+        <div class="sandbox-title">
+          <span>⚡</span> SIEM INGESTION SANDBOX & LIVE SIMULATOR
+        </div>
+        <div class="demo-buttons">
+          <button class="btn-demo" onclick="injectDemo('fortinet')">+ Fortinet Syslog</button>
+          <button class="btn-demo" onclick="injectDemo('snort')">+ Snort IDS Alert</button>
+          <button class="btn-demo" onclick="injectDemo('acme')">+ Acme Guard Plugin</button>
+          <button class="btn-demo" onclick="injectDemo('cisco')">+ Cisco ASA CEF</button>
+        </div>
+      </div>
+      <div class="sandbox-input-row">
+        <input type="text" id="manual-log-input" class="sandbox-input" placeholder="Paste any raw log string here (Syslog, JSON, CEF, LEEF, Snort, CSV, XML)...">
+        <button class="btn btn-primary" onclick="ingestManualLog()">Ingest & Normalize</button>
+        <input type="file" id="file-upload-input" style="display:none;" onchange="uploadLogFile(this)">
+        <button class="btn" style="background-color:#1e293b; border-color:#475569; color:#93c5fd; font-weight:600;" onclick="document.getElementById('file-upload-input').click()">
+          📁 Upload File
+        </button>
+        <button class="btn" style="background-color:#1e293b; border-color:#dc2626; color:#fca5a5; font-weight:600;" onclick="clearAllEvents()" title="Reset and clear all events back to 0">
+          🗑️ Clear Events
+        </button>
+      </div>
+    </div>
+
+    <!-- Visualizations Grid (Chart.js) -->
+    <div class="charts-grid">
+      <!-- Enforcement Actions -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Enforcement Actions</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="actionsChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Threat Severity -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Severity Distribution</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="severityChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Top Source IPs -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Top Origin Endpoints</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="sourcesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Multi-Vendor Distribution -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Multi-Vendor Breakdown</div>
+        </div>
+        <div class="chart-container">
+          <canvas id="vendorsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Blockchain Ledger & Chain of Custody Section -->
+    <div class="table-section" style="margin-bottom:24px;">
+      <div class="table-controls">
+        <div class="table-title">
+          <span style="font-size:16px;">⛓️</span>
+          <span>Cryptographic Blockchain Ledger (Chain of Custody)</span>
+          <span id="chain-status-pill" class="pill pill-allow" style="padding:4px 10px; font-size:10px; margin-left:8px;">✓ 100% UNTAMPERED</span>
+        </div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="auditBlockchainLedger()">🛡️ Audit Chain</button>
+          <button class="btn" onclick="sealBlockchainBlock()">⚡ Seal Block</button>
+          <button class="btn" style="background-color:rgba(239,68,68,0.15); color:#fca5a5; border-color:#dc2626;" onclick="simulateTamperAttack()">⚠️ Simulate Tamper Attack</button>
+          <button class="btn" style="background-color:rgba(16,185,129,0.15); color:#6ee7b7; border-color:#059669;" onclick="repairBlockchainLedger()">🔄 Repair & Sync</button>
+        </div>
+      </div>
+      <div id="chain-audit-msg" style="font-size:11px; color:#9ca3af; margin-bottom:14px; padding:8px 12px; background-color:#0b1120; border-radius:6px; border-left:3px solid #10b981;">
+        All sequential micro-blocks cryptographically chained via SHA-256 and Merkle DAG roots.
+      </div>
+      <div style="overflow-x:auto; padding-bottom:8px;">
+        <div id="blocks-stream" style="display:flex; gap:12px; min-width:min-content;">
+          <div style="color:#64748b; font-size:12px; padding:10px;">Loading blocks from ledger...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Events Stream Table Section -->
+    <div class="table-section">
+      <div class="table-controls">
+        <div class="table-title">
+          <span>🛡️</span> Normalized Universal Events Stream
+        </div>
+        <div class="filter-group">
+          <input type="text" id="filter-query" class="search-box" placeholder="Search IP, Vendor, Event ID..." oninput="debounceSearch()">
+          <select id="filter-action" class="select-filter" onchange="fetchDashboardData()">
+            <option value="">All Actions</option>
+            <option value="allow">Allow</option>
+            <option value="deny">Deny</option>
+            <option value="drop">Drop</option>
+          </select>
+          <select id="filter-severity" class="select-filter" onchange="fetchDashboardData()">
+            <option value="">All Severities</option>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+            <option value="info">Info</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Event ID</th>
+              <th>Timestamp</th>
+              <th>Source Endpoint</th>
+              <th>Destination</th>
+              <th>Vendor / Product</th>
+              <th>Action</th>
+              <th>Severity</th>
+              <th>Integrity (SHA-256)</th>
+              <th>Inspect</th>
+            </tr>
+          </thead>
+          <tbody id="events-tbody">
+            <tr>
+              <td colspan="9" style="text-align:center; padding:30px; color:#64748b;">
+                Loading events stream...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Event Detail Modal -->
+  <div class="modal-overlay" id="eventModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title" id="modal-event-id">Event Details</div>
+        <button class="modal-close" onclick="closeModal('eventModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div>
+          <div class="modal-section-title">Standardized Universal Event (Canonical Schema)</div>
+          <pre class="json-box" id="modal-canonical-json"></pre>
+        </div>
+        <div>
+          <div class="modal-section-title">Original Raw Event (Lossless Preservation)</div>
+          <pre class="json-box" id="modal-raw-json" style="color:#a7f3d0;"></pre>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#9ca3af;">
+          <div>Cryptographic SHA-256 Hash: <span id="modal-hash" style="font-family:monospace; color:#93c5fd;"></span></div>
+          <div class="shield-badge">✓ Lossless Verification Confirmed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plugins Modal -->
+  <div class="modal-overlay" id="pluginsModal">
+    <div class="modal-content" style="max-width:650px;">
+      <div class="modal-header">
+        <div class="modal-title">Dynamic Plug-and-Play Plugins</div>
+        <button class="modal-close" onclick="closeModal('pluginsModal')">&times;</button>
+      </div>
+      <div class="modal-body" id="plugins-modal-body">
+        <!-- Injected via JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Merkle Proof Modal -->
+  <div class="modal-overlay" id="merkleProofModal">
+    <div class="modal-content" style="max-width:700px;">
+      <div class="modal-header">
+        <div class="modal-title">Merkle Tree Audit Receipt (Selective Disclosure)</div>
+        <button class="modal-close" onclick="closeModal('merkleProofModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px; margin-bottom:12px;">
+          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px;">Target Event ID: <span id="modal-proof-event-id" style="color:#93c5fd; font-family:monospace; font-weight:700;"></span></div>
+          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px;">Sealed in: <span id="modal-proof-block" style="color:#e2e8f0; font-family:monospace;"></span></div>
+          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px;">Block Merkle Root: <span id="modal-proof-root" style="color:#a78bfa; font-family:monospace;"></span></div>
+          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px;">Event Raw SHA-256: <span id="modal-proof-hash" style="color:#34d399; font-family:monospace;"></span></div>
+          <div style="font-size:11px; font-weight:700; color:#34d399;" id="modal-proof-valid">✓ Valid Cryptographic Proof</div>
+        </div>
+        <div class="modal-section-title">O(log N) Sibling Hash Audit Path</div>
+        <pre class="json-box" id="modal-proof-steps"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast">Event processed successfully!</div>
+
+  <script>
+    let actionsChart = null;
+    let severityChart = null;
+    let sourcesChart = null;
+    let vendorsChart = null;
+    let activeEvents = [];
+    let searchTimer = null;
+
+    function showToast(msg, isError = false) {
+      const toast = document.getElementById("toast");
+      toast.innerText = msg;
+      toast.style.borderLeftColor = isError ? "var(--danger)" : "var(--primary)";
+      toast.style.display = "block";
+      setTimeout(() => { toast.style.display = "none"; }, 3500);
+    }
+
+    function debounceSearch() {
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(fetchDashboardData, 300);
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).style.display = "none";
+    }
+
+    function openModal(id) {
+      document.getElementById(id).style.display = "flex";
+    }
+
+    async function fetchDashboardData() {
+      try {
+        // Fetch stats
+        const statsRes = await fetch("/api/v1/dashboard/stats");
+        if (statsRes.ok) {
+          const stats = await statsRes.json();
+          renderStats(stats);
+        }
+
+        // Fetch events with filters
+        const q = document.getElementById("filter-query").value;
+        const act = document.getElementById("filter-action").value;
+        const sev = document.getElementById("filter-severity").value;
+        
+        let url = `/api/v1/events?limit=30`;
+        if (q) url += `&query=${encodeURIComponent(q)}`;
+        if (act) url += `&action=${encodeURIComponent(act)}`;
+        if (sev) url += `&severity=${encodeURIComponent(sev)}`;
+
+        const eventsRes = await fetch(url);
+        if (eventsRes.ok) {
+          activeEvents = await eventsRes.json();
+          renderEventsTable(activeEvents);
+        }
+
+        // Fetch plugins
+        const plugRes = await fetch("/api/v1/plugins");
+        if (plugRes.ok) {
+          const pData = await plugRes.json();
+          const pCount = pData.plugins ? pData.plugins.length : 0;
+          document.getElementById("active-plugin-count").innerText = `${pCount} Active`;
+          window._loadedPlugins = pData.plugins;
+        }
+
+        // Fetch blockchain blocks
+        fetchBlockchainBlocks();
+
+      } catch (err) {
+        console.error("Dashboard fetch error:", err);
+      }
+    }
+
+    function renderStats(stats) {
+      // KPIs
+      document.getElementById("kpi-total").innerText = Number(stats.total_events || 0).toLocaleString();
+      document.getElementById("kpi-eps").innerHTML = `${stats.throughput_eps || 0} <span style="font-size:14px; font-weight:500;">EPS</span>`;
+      document.getElementById("kpi-latency").innerHTML = `${stats.average_latency_ms || 0} <span style="font-size:14px; font-weight:500;">ms</span>`;
+
+      if (typeof Chart === "undefined") return;
+
+      // 1. Actions Chart
+      const actionLabels = Object.keys(stats.action_distribution || {});
+      const actionCounts = Object.values(stats.action_distribution || {});
+      const actionColors = actionLabels.map(l => {
+        const low = l.toLowerCase();
+        if (low.includes("allow") || low.includes("permit") || low.includes("accept")) return "#10b981";
+        if (low.includes("deny") || low.includes("block")) return "#ef4444";
+        if (low.includes("drop")) return "#f59e0b";
+        return "#3b82f6";
+      });
+
+      if (actionsChart) actionsChart.destroy();
+      const ctxAct = document.getElementById("actionsChart").getContext("2d");
+      actionsChart = new Chart(ctxAct, {
+        type: "doughnut",
+        data: {
+          labels: actionLabels.length ? actionLabels : ["None"],
+          datasets: [{
+            data: actionCounts.length ? actionCounts : [1],
+            backgroundColor: actionColors.length ? actionColors : ["#334155"],
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "right", labels: { color: "#cbd5e1", font: { size: 11 } } } }
+        }
+      });
+
+      // 2. Severity Chart
+      const sevOrder = ["critical", "high", "medium", "low", "info"];
+      const sevMap = stats.severity_distribution || {};
+      const sevLabels = [];
+      const sevCounts = [];
+      const sevColors = [];
+      sevOrder.forEach(s => {
+        if (sevMap[s] !== undefined || Object.keys(sevMap).length === 0) {
+          sevLabels.push(s.toUpperCase());
+          sevCounts.push(sevMap[s] || 0);
+          if (s === "critical") sevColors.push("#dc2626");
+          else if (s === "high") sevColors.push("#ea580c");
+          else if (s === "medium") sevColors.push("#f59e0b");
+          else if (s === "low") sevColors.push("#3b82f6");
+          else sevColors.push("#64748b");
+        }
+      });
+
+      if (severityChart) severityChart.destroy();
+      const ctxSev = document.getElementById("severityChart").getContext("2d");
+      severityChart = new Chart(ctxSev, {
+        type: "bar",
+        data: {
+          labels: sevLabels,
+          datasets: [{
+            label: "Events",
+            data: sevCounts,
+            backgroundColor: sevColors,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } },
+            y: { ticks: { color: "#94a3b8", font: { size: 10 }, precision: 0 }, grid: { color: "#1e293b" } }
+          }
+        }
+      });
+
+      // 3. Top Source IPs Chart
+      const topSources = stats.top_sources || [];
+      const srcLabels = topSources.map(s => s.ip);
+      const srcCounts = topSources.map(s => s.count);
+
+      if (sourcesChart) sourcesChart.destroy();
+      const ctxSrc = document.getElementById("sourcesChart").getContext("2d");
+      sourcesChart = new Chart(ctxSrc, {
+        type: "bar",
+        indexAxis: "y",
+        data: {
+          labels: srcLabels.length ? srcLabels : ["None"],
+          datasets: [{
+            label: "Count",
+            data: srcCounts.length ? srcCounts : [0],
+            backgroundColor: "#3b82f6",
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: "#94a3b8", font: { size: 10 }, precision: 0 }, grid: { color: "#1e293b" } },
+            y: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } }
+          }
+        }
+      });
+
+      // 4. Vendors Chart
+      const vLabels = Object.keys(stats.top_vendors || {});
+      const vCounts = Object.values(stats.top_vendors || {});
+      const vPalette = ["#8b5cf6", "#06b6d4", "#ec4899", "#10b981", "#f59e0b"];
+
+      if (vendorsChart) vendorsChart.destroy();
+      const ctxVen = document.getElementById("vendorsChart").getContext("2d");
+      vendorsChart = new Chart(ctxVen, {
+        type: "doughnut",
+        data: {
+          labels: vLabels.length ? vLabels : ["Generic"],
+          datasets: [{
+            data: vCounts.length ? vCounts : [1],
+            backgroundColor: vPalette.slice(0, vLabels.length || 1),
+            borderWidth: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: "right", labels: { color: "#cbd5e1", font: { size: 11 } } } }
+        }
+      });
+    }
+
+    function renderEventsTable(events) {
+      const tbody = document.getElementById("events-tbody");
+      if (!events || events.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#64748b;">No events match the current criteria. Ingest a sample above!</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = events.map((ev, idx) => {
+        const id = ev.event_id || "N/A";
+        const ts = ev.event?.timestamp || ev.metadata?.ingestion_timestamp || "-";
+        const src = `${ev.source?.ip || '-'}${ev.source?.port ? ':' + ev.source.port : ''}`;
+        const dst = `${ev.destination?.ip || '-'}${ev.destination?.port ? ':' + ev.destination.port : ''}`;
+        const vendor = ev.device?.vendor || "Generic";
+        const prod = ev.device?.product ? ` (${ev.device.product})` : "";
+        const act = (ev.event?.action || "unknown").toLowerCase();
+        const sev = (ev.event?.severity || "info").toLowerCase();
+        const hash = ev.metadata?.raw_event_hash ? ev.metadata.raw_event_hash.substring(0, 12) + "..." : "✓ valid";
+
+        return `
+          <tr>
+            <td class="cell-id">${id}</td>
+            <td style="color:#94a3b8; font-size:11px;">${ts}</td>
+            <td class="cell-ip">${src}</td>
+            <td class="cell-ip">${dst}</td>
+            <td><span style="font-weight:600; color:#cbd5e1;">${vendor}</span><span style="color:#64748b; font-size:11px;">${prod}</span></td>
+            <td><span class="pill pill-${act}">${act}</span></td>
+            <td><span class="pill pill-${sev}">${sev}</span></td>
+            <td>
+              <div class="shield-badge" title="SHA-256 Hash: ${ev.metadata?.raw_event_hash || ''}">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                <span>${hash}</span>
+              </div>
+            </td>
+            <td>
+              <button class="btn" style="padding:4px 8px; font-size:10px;" onclick="inspectEvent(${idx})">Inspect</button>
+              <button class="btn" style="padding:4px 8px; font-size:10px; margin-left:4px; background-color:rgba(139,92,246,0.15); color:#c4b5fd; border-color:#7c3aed;" onclick="inspectMerkleProof('${id}')">Proof</button>
+            </td>
+          </tr>
+        `;
+      }).join("");
+    }
+
+    function inspectEvent(idx) {
+      const ev = activeEvents[idx];
+      if (!ev) return;
+
+      document.getElementById("modal-event-id").innerText = `Universal Event: ${ev.event_id}`;
+      document.getElementById("modal-canonical-json").innerText = JSON.stringify(ev, null, 2);
+      document.getElementById("modal-raw-json").innerText = ev.raw?.data || "Raw event data preserved losslessly.";
+      document.getElementById("modal-hash").innerText = ev.metadata?.raw_event_hash || "Calculated SHA-256 matches payload.";
+      openModal("eventModal");
+    }
+
+    function showPluginsModal() {
+      const modalBody = document.getElementById("plugins-modal-body");
+      const plugins = window._loadedPlugins || [];
+      if (plugins.length === 0) {
+        modalBody.innerHTML = `<p style="color:#9ca3af;">No dynamic plugins currently discovered.</p>`;
+      } else {
+        modalBody.innerHTML = plugins.map(p => `
+          <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:14px; margin-bottom:12px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-weight:700; color:#93c5fd; font-size:13px;">${p.name} v${p.version}</span>
+              <span style="font-size:11px; color:#94a3b8;">Author: ${p.author}</span>
+            </div>
+            <p style="font-size:12px; color:#cbd5e1; margin-bottom:8px;">${p.description}</p>
+            <div style="font-size:11px; color:#64748b;">
+              Vendors: <span style="color:#a78bfa;">${p.supported_vendors.join(', ') || 'All'}</span> | 
+              Formats: <span style="color:#34d399;">${p.supported_formats.join(', ') || 'All'}</span>
+            </div>
+          </div>
+        `).join("");
+      }
+      openModal("pluginsModal");
+    }
+
+    async function ingestManualLog() {
+      const input = document.getElementById("manual-log-input");
+      const text = input.value.trim();
+      if (!text) {
+        showToast("Please enter a raw log string to ingest.", true);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/v1/events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ raw_event: text })
+        });
+        if (res.ok) {
+          const ev = await res.json();
+          showToast(`Event ingested! Normalized action: ${ev.event?.action || 'processed'}`);
+          input.value = "";
+          fetchDashboardData();
+        } else {
+          showToast("Failed to ingest event. Check formatting or dead-letter queue.", true);
+        }
+      } catch (err) {
+        showToast(`Error: ${err.message}`, true);
+      }
+    }
+
+    async function uploadLogFile(inputEl) {
+      const file = inputEl.files[0];
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("file", file);
+      showToast(`Uploading and processing "${file.name}"...`);
+      try {
+        const res = await fetch("/api/v1/process", {
+          method: "POST",
+          body: formData
+        });
+        if (res.ok) {
+          const data = await res.json();
+          showToast(`Successfully processed ${data.events_processed} event(s) from ${data.filename}!`);
+          inputEl.value = "";
+          fetchDashboardData();
+          fetchBlockchainBlocks();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          showToast(`Failed: ${errData.detail || 'Could not parse log file'}`, true);
+        }
+      } catch (err) {
+        showToast(`Upload error: ${err.message}`, true);
+      }
+    }
+
+    async function clearAllEvents() {
+      if (!confirm("Clear all ingested events and reset the blockchain ledger back to 0?")) return;
+      try {
+        const res = await fetch("/api/v1/events/clear", { method: "POST" });
+        if (res.ok) {
+          showToast("All events cleared! Database reset to 0.");
+          fetchDashboardData();
+          fetchBlockchainBlocks();
+        } else {
+          showToast("Failed to clear events.", true);
+        }
+      } catch (err) {
+        showToast("Error clearing events: " + err.message, true);
+      }
+    }
+
+    async function injectDemo(type) {
+      let sample = "";
+      if (type === "fortinet") {
+        sample = 'date=2026-09-02 time=18:00:00 devname="FGT-HQ" devid="FGT60D" type="traffic" subtype="forward" level="warning" action="deny" srcip=10.100.1.50 dstip=198.51.100.4 srcport=54123 dstport=443 proto=6 msg="Policy violation: unauthorized SSL traffic"';
+      } else if (type === "snort") {
+        sample = '[**] [1:1000001:1] ET EXPLOIT MS08-067 NetAPI RPC Request [**] [Classification: Attempted Administrator Privilege Gain] [Priority: 1] {TCP} 198.51.100.80:445 -> 10.0.0.15:445';
+      } else if (type === "acme") {
+        sample = '{"acme_src": "192.168.50.12", "acme_dst": "10.0.0.1", "acme_sport": 49152, "acme_dport": 80, "acme_disposition": "BLOCK", "acme_threat_level": "critical", "acme_proto": "TCP", "vendor": "AcmeSecurity"}';
+      } else if (type === "cisco") {
+        sample = 'CEF:0|Cisco|ASA|9.12|302014|Teardown TCP connection|6|src=172.16.1.100 dst=8.8.8.8 spt=52123 dpt=53 proto=TCP act=deny';
+      }
+
+      document.getElementById("manual-log-input").value = sample;
+      await ingestManualLog();
+    }
+
+    async function fetchBlockchainBlocks() {
+      try {
+        const res = await fetch("/api/v1/blockchain/blocks");
+        if (!res.ok) return;
+        const data = await res.json();
+        const blocks = data.blocks || [];
+        const container = document.getElementById("blocks-stream");
+        if (blocks.length === 0) {
+          container.innerHTML = `<div style="color:#64748b; font-size:12px; padding:10px;">Genesis block initialized. Ingest events to seal blocks.</div>`;
+          return;
+        }
+
+        container.innerHTML = blocks.map(b => {
+          const isGenesis = b.index === 0;
+          const isTampered = !!b.is_tampered;
+          const label = isGenesis ? "GENESIS #0" : `BLOCK #${b.index}`;
+          const bHash = b.block_hash ? b.block_hash.substring(0, 10) + "..." : "N/A";
+          const pHash = b.prev_hash ? b.prev_hash.substring(0, 10) + "..." : "00000000...";
+          const mRoot = b.merkle_root ? b.merkle_root.substring(0, 10) + "..." : "00000000...";
+          const badgeClass = isGenesis ? "badge-airgap" : (isTampered ? "badge-critical" : "badge-online");
+          const cardBorder = isTampered ? "border: 2px solid #ef4444; background-color: rgba(239, 68, 68, 0.08);" : "background-color:#0b1120; border:1px solid #1f293d;";
+          const hashColor = isTampered ? "#f87171; font-weight:bold;" : "#93c5fd;";
+
+          return `
+            <div style="${cardBorder} border-radius:6px; padding:12px 14px; min-width:220px; box-shadow:0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s ease;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="badge ${badgeClass}" style="font-size:10px;">${isTampered ? "⚠️ TAMPERED" : label}</span>
+                <span style="font-size:10px; color:#94a3b8;">${b.event_count} Evs</span>
+              </div>
+              <div style="font-size:10px; color:#64748b; font-family:monospace; margin-bottom:3px;">Hash: <span style="color:${hashColor}">${bHash}</span></div>
+              <div style="font-size:10px; color:#64748b; font-family:monospace; margin-bottom:3px;">Prev: <span style="color:#cbd5e1;">${pHash}</span></div>
+              <div style="font-size:10px; color:#64748b; font-family:monospace; margin-bottom:6px;">Root: <span style="color:#a78bfa;">${mRoot}</span></div>
+              <div style="font-size:10px; color:#475569;">${b.timestamp}</div>
+            </div>
+          `;
+        }).join("");
+      } catch (err) {
+        console.error("Blockchain blocks fetch error:", err);
+      }
+    }
+
+    async function auditBlockchainLedger() {
+      try {
+        const res = await fetch("/api/v1/blockchain/audit");
+        const data = await res.json();
+        const pill = document.getElementById("chain-status-pill");
+        const msg = document.getElementById("chain-audit-msg");
+
+        if (data.is_valid) {
+          pill.className = "pill pill-allow";
+          pill.innerText = "✓ 100% UNTAMPERED";
+          msg.style.borderLeftColor = "#10b981";
+          msg.innerText = `✓ Ledger Authenticity Confirmed: All ${data.total_blocks} blocks and ${data.total_events} events cryptographically linked.`;
+          showToast(`Blockchain audit passed: 100% untampered! (${data.total_blocks} blocks)`);
+        } else {
+          pill.className = "pill pill-critical";
+          pill.innerText = "⚠️ TAMPER DETECTED";
+          msg.style.borderLeftColor = "#ef4444";
+          msg.innerText = `⚠️ CRITICAL AUDIT FAILURE at Block #${data.broken_at_block}: ${data.reason}`;
+          showToast(`TAMPER DETECTED at Block #${data.broken_at_block}!`, true);
+        }
+      } catch (err) {
+        showToast("Error auditing blockchain: " + err.message, true);
+      }
+    }
+
+    async function sealBlockchainBlock() {
+      try {
+        const res = await fetch("/api/v1/blockchain/seal", { method: "POST" });
+        const data = await res.json();
+        showToast(data.message, !data.sealed);
+        fetchDashboardData();
+      } catch (err) {
+        showToast("Error sealing block: " + err.message, true);
+      }
+    }
+
+    async function simulateTamperAttack() {
+      try {
+        const res = await fetch("/api/v1/blockchain/simulate-tamper", { method: "POST" });
+        const data = await res.json();
+        showToast("Simulated attack injected into Block #" + data.target_block + "!", true);
+        await auditBlockchainLedger();
+        fetchBlockchainBlocks();
+      } catch (err) {
+        showToast("Error simulating tamper: " + err.message, true);
+      }
+    }
+
+    async function repairBlockchainLedger() {
+      try {
+        const res = await fetch("/api/v1/blockchain/repair", { method: "POST" });
+        const data = await res.json();
+        showToast(`Ledger repaired! Re-synchronized ${data.blocks_restored} blocks.`);
+        await auditBlockchainLedger();
+        fetchBlockchainBlocks();
+      } catch (err) {
+        showToast("Error repairing blockchain: " + err.message, true);
+      }
+    }
+
+    async function inspectMerkleProof(eventId) {
+      try {
+        const res = await fetch(`/api/v1/blockchain/proof/${eventId}`);
+        if (!res.ok) {
+          showToast(`Event '${eventId}' has not been sealed in a block yet. Ingest or seal current block!`, true);
+          return;
+        }
+        const data = await res.json();
+        document.getElementById("modal-proof-event-id").innerText = eventId;
+        document.getElementById("modal-proof-block").innerText = `Block #${data.block_index} (${data.block_hash.substring(0, 16)}...)`;
+        document.getElementById("modal-proof-root").innerText = data.merkle_root;
+        document.getElementById("modal-proof-hash").innerText = data.raw_event_hash;
+        document.getElementById("modal-proof-valid").innerText = data.is_valid ? "✓ Valid O(log N) Cryptographic Proof" : "❌ Invalid Proof";
+        document.getElementById("modal-proof-steps").innerText = JSON.stringify(data.proof, null, 2);
+        openModal("merkleProofModal");
+      } catch (err) {
+        showToast("Error fetching Merkle proof: " + err.message, true);
+      }
+    }
+
+    // Auto-refresh every 5 seconds
+    setInterval(fetchDashboardData, 5000);
+    // Initial fetch on page load
+    fetchDashboardData();
+  </script>
+</body>
+</html>

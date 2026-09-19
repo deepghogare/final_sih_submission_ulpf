@@ -1,0 +1,26 @@
+# ==============================================================================
+# Cisco ASA Syslog Mapping Configuration
+# ==============================================================================
+vendor: "Cisco"
+product: "ASA"
+device_type: "firewall"
+mapping_version: "1.0"
+
+detection:
+  match_fields:
+    - "cisco_tag"
+    - "cisco_mnemonic"
+  header_keywords:
+    - "%ASA"
+    - "cisco-asa"
+
+fields:
+  src_ip: "source.ip"
+  src_port: "source.port"
+  dst_ip: "destination.ip"
+  dst_port: "destination.port"
+  protocol: "network.protocol"
+  action: "event.action"
+  severity: "event.severity"
+  user: "user.name"
+  timestamp: "event.timestamp"

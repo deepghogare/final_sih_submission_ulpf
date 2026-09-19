@@ -1,0 +1,4 @@
+timestamp,src_ip,dst_ip,src_port,dst_port,proto,action,severity,vendor,bytes
+2026-09-02T17:35:00Z,192.168.1.100,10.0.0.50,55100,443,TCP,ALLOW,info,CheckPoint,8192
+2026-09-02T17:35:01Z,192.168.1.101,10.0.0.51,55101,80,TCP,DENY,medium,CheckPoint,0
+2026-09-02T17:35:02Z,192.168.1.102,10.0.0.52,55102,3389,TCP,DROP,high,CheckPoint,0

@@ -1,0 +1,15 @@
+{
+  "eventTime": "2026-09-02T17:30:15Z",
+  "sourceAddress": "192.168.1.20",
+  "destinationAddress": "10.0.0.5",
+  "sourcePort": 54321,
+  "destinationPort": 443,
+  "decision": "BLOCK",
+  "priority": "medium",
+  "transportProtocol": "TCP",
+  "devVendor": "VendorB",
+  "devName": "FirewallB",
+  "bytesTotal": 1024,
+  "packetCount": 10,
+  "proprietary_field": "PROP_VAL_42"
+}

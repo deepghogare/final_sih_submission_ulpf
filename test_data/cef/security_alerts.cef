@@ -1,0 +1,3 @@
+CEF:0|Palo Alto Networks|PAN-OS|10.1.0|TRAFFIC|drop|7|src=192.168.1.77 dst=10.0.0.99 spt=51234 dpt=445 proto=TCP act=deny device_name=PAN-FW-01
+CEF:0|Palo Alto Networks|PAN-OS|10.1.0|TRAFFIC|allow|2|src=192.168.1.78 dst=10.0.0.100 spt=51235 dpt=80 proto=TCP act=allow device_name=PAN-FW-01
+CEF:0|Fortinet|FortiGate|7.0.5|THREAT|ips-detect|8|src=192.168.1.80 dst=10.0.0.5 spt=34567 dpt=8080 proto=TCP act=drop device_name=FG-500E
