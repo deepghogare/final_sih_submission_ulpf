@@ -28,6 +28,15 @@ done
 2. **Offline GeoIP & Local Threat Intel / MITRE ATT&CK Tagging**
    - Integrate an offline MaxMind GeoLite2 IP database and local threat feeds to auto-enrich events with `geo.country`, `geo.coordinates`, and tag suspicious patterns with MITRE ATT&CK IDs (e.g., `T1078` for brute-force logins) during normalization.
 
+done by 24/9/26
+changes stored in change2.md
+
+python -m app.main serve --reload
+http://localhost:8000/
+click on plugins and see them tagging home devices as local, MITRE ATT&CK Badges: 🛡️ T1110.001 (Password Guessing) or 🛡️ T1190 (Exploit Public Application).
+
+
+
 
 
 
