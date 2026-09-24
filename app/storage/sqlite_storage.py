@@ -179,6 +179,25 @@ class SqliteStorage:
                 )
                 top_vendors = {row["vendor"]: row["count"] for row in vendor_cursor.fetchall()}
 
+                # 7. Average Latency from recent stored events
+                avg_lat = 0.0
+                try:
+                    lat_cursor = conn.execute("SELECT event_json FROM universal_events ORDER BY created_at DESC LIMIT 50")
+                    lat_rows = lat_cursor.fetchall()
+                    lats = []
+                    for r in lat_rows:
+                        try:
+                            d = json.loads(r["event_json"])
+                            pt = d.get("metadata", {}).get("processing_time_ms")
+                            if pt is not None:
+                                lats.append(float(pt))
+                        except Exception:
+                            pass
+                    if lats:
+                        avg_lat = round(sum(lats) / len(lats), 3)
+                except Exception:
+                    pass
+
                 return {
                     "total_events": total_events,
                     "action_distribution": action_distribution,
@@ -186,7 +205,28 @@ class SqliteStorage:
                     "top_sources": top_sources,
                     "top_destinations": top_destinations,
                     "top_vendors": top_vendors,
+                    "db_average_latency_ms": avg_lat,
                 }
+
+    def get_average_latency(self, limit: int = 50) -> float:
+        """Computes average processing latency from recent stored events."""
+        with self._lock:
+            with self._get_connection() as conn:
+                try:
+                    cursor = conn.execute("SELECT event_json FROM universal_events ORDER BY created_at DESC LIMIT ?", (limit,))
+                    rows = cursor.fetchall()
+                    lats = []
+                    for r in rows:
+                        try:
+                            d = json.loads(r["event_json"])
+                            pt = d.get("metadata", {}).get("processing_time_ms")
+                            if pt is not None:
+                                lats.append(float(pt))
+                        except Exception:
+                            pass
+                    return round(sum(lats) / len(lats), 3) if lats else 0.0
+                except Exception:
+                    return 0.0
 
     def clear_all(self) -> None:
         """Clears all stored events from the database."""

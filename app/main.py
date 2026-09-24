@@ -254,7 +254,62 @@ def cmd_serve(args):
     """Run the FastAPI web service with Uvicorn."""
     import uvicorn
     print(f"[*] Starting ULPF API server on {args.host}:{args.port}")
-    uvicorn.run("app.api:app", host=args.host, port=args.port, reload=args.reload)
+    try:
+        uvicorn.run("app.api:app", host=args.host, port=args.port, reload=args.reload, log_level="info")
+    except (KeyboardInterrupt, SystemExit):
+        print("\n[*] ULPF API server stopped.")
+
+
+def cmd_listen(args):
+    """Launch real-time streaming ingestion listeners (UDP/TCP/Kafka)."""
+    import asyncio
+    import signal
+    from app.core.stream_listener import default_stream_listener
+
+    output_path = Path(args.output or "output/live_stream_events.jsonl")
+    writer = JsonWriter(output_path)
+    default_stream_listener.output_writer = writer
+    default_stream_listener.enable_enrichment = args.enrich
+
+    print("=" * 60)
+    print(" ULPF REAL-TIME STREAMING INGESTION ENGINE ACTIVE")
+    print("=" * 60)
+    print(f" Output Location  : {output_path}")
+    print(f" UDP Syslog Port  : {args.udp_port}")
+    print(f" TCP Syslog Port  : {args.tcp_port}")
+    if args.kafka_topic:
+        print(f" Kafka Broker     : {args.kafka_bootstrap} (Topic: {args.kafka_topic})")
+    print(" Press Ctrl+C to stop listening.")
+    print("=" * 60)
+
+    stop_event = asyncio.Event()
+
+    async def run_listeners():
+        await default_stream_listener.start_udp_listener(host=args.host, port=args.udp_port)
+        await default_stream_listener.start_tcp_listener(host=args.host, port=args.tcp_port)
+        if args.kafka_topic:
+            default_stream_listener.start_kafka_consumer(
+                bootstrap_servers=args.kafka_bootstrap,
+                topic=args.kafka_topic
+            )
+
+        try:
+            while not stop_event.is_set():
+                await asyncio.sleep(0.2)
+        except (asyncio.CancelledError, KeyboardInterrupt):
+            pass
+        finally:
+            print("\n[*] Stopping listeners...")
+            await default_stream_listener.stop_udp_listener()
+            await default_stream_listener.stop_tcp_listener()
+            if args.kafka_topic:
+                default_stream_listener.stop_kafka_consumer()
+            print("[+] Listeners cleanly shutdown.")
+
+    try:
+        asyncio.run(run_listeners())
+    except (KeyboardInterrupt, SystemExit):
+        pass
 
 
 def main():
@@ -312,12 +367,26 @@ def main():
     p_srv.add_argument("--reload", action="store_true", help="Enable hot reload")
     p_srv.set_defaults(func=cmd_serve)
 
+    # listen
+    p_lst = subparsers.add_parser("listen", help="Launch real-time UDP/TCP/Kafka log streaming listeners")
+    p_lst.add_argument("--host", default="0.0.0.0", help="Bind host IP")
+    p_lst.add_argument("--udp-port", type=int, default=5140, help="UDP Syslog Port (default: 5140)")
+    p_lst.add_argument("--tcp-port", type=int, default=5141, help="TCP Syslog Port (default: 5141)")
+    p_lst.add_argument("--kafka-bootstrap", default="localhost:9092", help="Kafka broker bootstrap servers")
+    p_lst.add_argument("--kafka-topic", default=None, help="Kafka topic to consume from (optional)")
+    p_lst.add_argument("-o", "--output", help="Output JSONL path for streamed events")
+    p_lst.add_argument("--enrich", action="store_true", help="Enable offline asset database enrichment")
+    p_lst.set_defaults(func=cmd_listen)
+
     args = parser.parse_args()
     if not args.command:
         parser.print_help()
         sys.exit(0)
 
-    args.func(args)
+    try:
+        args.func(args)
+    except (KeyboardInterrupt, SystemExit):
+        sys.exit(0)
 
 
 if __name__ == "__main__":

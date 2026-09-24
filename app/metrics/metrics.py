@@ -22,6 +22,11 @@ class MetricsTracker:
             self.events_processed: int = 0
             self.events_failed: int = 0
 
+            # Sliding window of timestamps for instantaneous real-time EPS
+            self._recent_timestamps: List[float] = []
+            self._last_active_time: float = 0.0
+            self._last_measured_eps: float = 0.0
+
             # Specific stage failures
             self.detection_failures: int = 0
             self.parsing_failures: int = 0
@@ -41,10 +46,21 @@ class MetricsTracker:
             self.events_received += count
 
     def record_success(self, fmt: str, vendor: str, latency_ms: float) -> None:
+        now = time.time()
         with self._lock:
             self.events_processed += 1
             self.format_distribution[fmt] += 1
             self.vendor_distribution[vendor or "unknown"] += 1
+
+            # Append timestamp to sliding window
+            self._recent_timestamps.append(now)
+            self._last_active_time = now
+
+            # Keep window within last 10 seconds
+            cutoff = now - 10.0
+            while self._recent_timestamps and self._recent_timestamps[0] < cutoff:
+                self._recent_timestamps.pop(0)
+
             # Keep sample of latencies for percentile calculations (up to 50,000)
             if len(self.latencies_ms) < 50000:
                 self.latencies_ms.append(latency_ms)
@@ -65,9 +81,32 @@ class MetricsTracker:
 
     def get_snapshot(self) -> Dict[str, Any]:
         """Returns a snapshot dictionary of all tracked metrics."""
+        now = time.time()
         with self._lock:
-            elapsed_sec = max(time.time() - self.start_time, 0.001)
-            throughput = self.events_processed / elapsed_sec
+            # Clean sliding window
+            cutoff = now - 10.0
+            while self._recent_timestamps and self._recent_timestamps[0] < cutoff:
+                self._recent_timestamps.pop(0)
+
+            # Calculate real-time sliding window EPS
+            if len(self._recent_timestamps) > 1:
+                window_span = max(now - self._recent_timestamps[0], 0.05)
+                throughput = len(self._recent_timestamps) / window_span
+                self._last_measured_eps = throughput
+            elif len(self._recent_timestamps) == 1:
+                # Instant single event rate based on latency
+                avg_l = (self.latencies_ms[-1] / 1000.0) if self.latencies_ms else 0.001
+                throughput = round(1.0 / max(avg_l, 0.0001), 1)
+                self._last_measured_eps = throughput
+            elif now - self._last_active_time < 5.0 and self._last_measured_eps > 0:
+                # Keep last active burst EPS for a brief grace period
+                throughput = self._last_measured_eps
+            elif self.events_processed > 0:
+                # Overall average
+                elapsed_sec = max(now - self.start_time, 0.001)
+                throughput = self.events_processed / elapsed_sec
+            else:
+                throughput = 0.0
 
             avg_latency = (sum(self.latencies_ms) / len(self.latencies_ms)) if self.latencies_ms else 0.0
             sorted_latencies = sorted(self.latencies_ms) if self.latencies_ms else []
@@ -85,7 +124,7 @@ class MetricsTracker:
                 "events_processed": self.events_processed,
                 "events_failed": self.events_failed,
                 "events_per_second": round(throughput, 2),
-                "elapsed_seconds": round(elapsed_sec, 3),
+                "elapsed_seconds": round(max(now - self.start_time, 0.001), 3),
                 "average_latency_ms": round(avg_latency, 3),
                 "latency_p50_ms": round(p50, 3),
                 "latency_p95_ms": round(p95, 3),

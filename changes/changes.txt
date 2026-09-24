@@ -1,0 +1,66 @@
+Ran command: `dir`
+Viewed README.md:1-200
+
+To win Smart India Hackathon (SIH) for Problem 26156 (NTRO - Universal Log Pre-processing Framework), judges look for **extreme performance, real-time live streaming capabilities, production readiness, and standout forensic/analytical features**. 
+
+Here is the targeted, prioritized checklist of points to **ADD**, **CHANGE**, and **REMOVE**:
+
+---
+
+### ➕ **ADD (High-Impact Features to Win)**
+
+1. **Real-Time Streaming Listeners (UDP/TCP/Syslog & Kafka Consumer)**
+   - Add a live listening server (e.g., Syslog UDP/TCP on Port 514 or a Kafka consumer) so you can demonstrate live log ingestion from real network devices/simulators during the pitch, rather than just processing static `.log` files.
+
+started 1 on 23/9/26 23:34
+plan is in implementation_plan.md
+its results is in walkthrough.md
+
+python -m app.main serve
+python -m app.main listen --udp-port 5140 --tcp-port 5141
+python scripts/stream_simulator.py --protocol udp --port 5140 --count 100 --rate 10
+
+done 
+
+
+
+
+2. **Offline GeoIP & Local Threat Intel / MITRE ATT&CK Tagging**
+   - Integrate an offline MaxMind GeoLite2 IP database and local threat feeds to auto-enrich events with `geo.country`, `geo.coordinates`, and tag suspicious patterns with MITRE ATT&CK IDs (e.g., `T1078` for brute-force logins) during normalization.
+
+
+
+
+3. **Interactive Merkle Tree & Blockchain Audit UI**
+   - Add a visual Merkle tree inspector in the FastAPI web dashboard where judges can click any log block, modify a byte, and watch the tampered block flag red instantly.
+4. **High-Throughput Multiprocessing / Async Workers & Benchmarks**
+   - Add multiprocessing worker pools (`ProcessPoolExecutor`) or async batching to achieve **50,000+ logs/sec** ingestion speed.
+   - Include a benchmark generator script with visual charts (EPS - Events Per Second, CPU/RAM footprint comparison).
+5. **Automated Parser Auto-Generation / Regex Rule Builder**
+   - Add an AI-assisted or regex pattern visual builder in the frontend UI so non-developers can create and test custom log parsers without touching Python code.
+6. **Built-in Log Anomaly & Rate Spike Detector**
+   - Implement lightweight statistical anomaly detection (z-score on volume spikes, unexpected null fields, format deviation alerts) before forwarding to SIEM.
+
+---
+
+### 🔄 **CHANGE (Architecture & Code Improvements)**
+
+1. **Elevate Performance Metrics & Parallelization**
+   - Upgrade the ingestion pipeline from single-threaded sequential execution to a concurrent pipeline (using Python `multiprocessing` or `asyncio` file/socket reading) to prove low latency at scale.
+2. **Enhance Wazuh & Downstream Integration Depth**
+   - Expand beyond raw JSON forwarding: provide auto-generated Wazuh decoders (`local_decoder.xml`) and rules (`local_rules.xml`) mapped to your Universal Event Schema so Wazuh triggers alerts out-of-the-box.
+3. **Harden Blockchain Ledger (Disk Persistence & Pruning)**
+   - Ensure the Merkle ledger persists state cleanly to SQLite/LevelDB and supports periodic checkpointing/sealing so memory consumption remains constant under gigabytes of logs.
+4. **Upgrade Web Dashboard UX**
+   - Enhance the dashboard with dark mode, live web-sockets throughput graphs (Chart.js / Recharts), live log stream tailing, and SIEM adapter status badges (Connected / Reconnecting).
+
+---
+
+### ❌ **REMOVE (Weaknesses & Red Flags for Judges)**
+
+1. **Remove Any Hardcoded Paths or Environment Assumptions**
+   - Purge absolute paths, local hardcoded credentials, or dev environment paths. Use strict `configs/` or `.env` configurations.
+2. **Remove Unused / Placeholder Code & Mock Functions**
+   - Eliminate stub functions, unused dependencies in `requirements.txt`, or incomplete test mocks that might crash if judges perform live testing.
+3. **Remove Silent Exception Catching**
+   - Ensure all parsing/normalization failures are explicitly logged with detailed stack traces into the Dead-Letter Queue (`failed_events/`) rather than swallowed with `try: ... except: pass`.

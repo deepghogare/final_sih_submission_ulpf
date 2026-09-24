@@ -7,14 +7,16 @@ health check, and real-time metrics.
 from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 import tempfile
 import os
+import asyncio
 
 from app.core.config import default_settings
 from app.core.pipeline import default_pipeline
+from app.core.stream_listener import default_stream_listener
 from app.plugins.loader import default_plugin_loader
 from app.models.universal_event import UniversalEvent
 
@@ -28,11 +30,21 @@ async def lifespan(app: FastAPI):
     yield
 
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(
     title="ULPF - Universal Log Pre-processing Framework API",
     version="1.0.0",
     description="Standardization and pre-processing layer for heterogeneous cybersecurity logs (SIH 2026 - NTRO).",
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -87,9 +99,23 @@ def get_plugins():
                 "description": p.description,
                 "supported_vendors": p.supported_vendors,
                 "supported_formats": p.supported_formats,
+                "status": "active"
             }
             for p in default_pipeline.plugin_registry.list_plugins()
         ]
+    }
+
+
+@app.post("/api/v1/plugins/reload", tags=["Discovery"])
+def reload_plugins():
+    """Dynamically scan plugins/ directory and hot-reload all new and updated plugins."""
+    count = default_plugin_loader.discover_and_load(default_settings.plugins_dir)
+    active = default_pipeline.plugin_registry.list_plugins()
+    return {
+        "status": "success",
+        "loaded_count": count,
+        "total_active": len(active),
+        "plugins": [p.name for p in active]
     }
 
 
@@ -107,8 +133,17 @@ def get_dashboard_stats():
     """Aggregated security and operational metrics for the SIEM dashboard."""
     stats = default_pipeline.sqlite_storage.get_dashboard_summary()
     metrics = default_pipeline.metrics.get_snapshot()
-    stats["throughput_eps"] = metrics.get("events_per_second", 0.0)
-    stats["average_latency_ms"] = metrics.get("average_latency_ms", 0.0)
+
+    live_eps = metrics.get("events_per_second", 0.0)
+    avg_latency = metrics.get("average_latency_ms", 0.0)
+
+    if avg_latency == 0.0:
+        avg_latency = stats.get("db_average_latency_ms", 0.0)
+        if avg_latency == 0.0 and stats.get("total_events", 0) > 0:
+            avg_latency = default_pipeline.sqlite_storage.get_average_latency()
+
+    stats["throughput_eps"] = live_eps
+    stats["average_latency_ms"] = avg_latency
     stats["events_failed"] = metrics.get("events_failed", 0)
     return stats
 
@@ -253,5 +288,87 @@ def clear_all_events():
 def get_siem_status():
     """Returns the live operational status and metrics of the Wazuh SIEM forwarder."""
     return default_pipeline.siem_forwarder.get_status()
+
+
+# ==============================================================================
+# Streaming Ingestion Listeners (UDP/TCP/Kafka) & WebSockets
+# ==============================================================================
+
+class StartListenerRequest(BaseModel):
+    protocol: str = Field(description="Protocol to start ('udp', 'tcp', 'kafka')")
+    port: Optional[int] = Field(default=None, description="Port for UDP or TCP listener")
+    host: Optional[str] = Field(default="0.0.0.0", description="Host bind IP")
+    kafka_bootstrap: Optional[str] = Field(default="localhost:9092")
+    kafka_topic: Optional[str] = Field(default="raw-logs")
+
+
+@app.get("/api/v1/listeners/status", tags=["Streaming Listeners"])
+def get_listeners_status():
+    """Get status of UDP, TCP, and Kafka real-time listeners."""
+    return default_stream_listener.get_status()
+
+
+@app.post("/api/v1/listeners/start", tags=["Streaming Listeners"])
+async def start_listener(req: StartListenerRequest):
+    """Start UDP, TCP, or Kafka background listener."""
+    proto = req.protocol.lower()
+    if proto == "udp":
+        port = req.port or 5140
+        await default_stream_listener.start_udp_listener(host=req.host or "0.0.0.0", port=port)
+        return {"status": "success", "message": f"UDP Listener started on {req.host}:{port}"}
+    elif proto == "tcp":
+        port = req.port or 5141
+        await default_stream_listener.start_tcp_listener(host=req.host or "0.0.0.0", port=port)
+        return {"status": "success", "message": f"TCP Listener started on {req.host}:{port}"}
+    elif proto == "kafka":
+        default_stream_listener.start_kafka_consumer(
+            bootstrap_servers=req.kafka_bootstrap or "localhost:9092",
+            topic=req.kafka_topic or "raw-logs"
+        )
+        return {"status": "success", "message": f"Kafka Consumer started for topic '{req.kafka_topic}'"}
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported protocol '{req.protocol}'")
+
+
+@app.post("/api/v1/listeners/stop", tags=["Streaming Listeners"])
+async def stop_listener(protocol: str):
+    """Stop active streaming listener ('udp', 'tcp', 'kafka')."""
+    proto = protocol.lower()
+    if proto == "udp":
+        await default_stream_listener.stop_udp_listener()
+        return {"status": "success", "message": "UDP Listener stopped"}
+    elif proto == "tcp":
+        await default_stream_listener.stop_tcp_listener()
+        return {"status": "success", "message": "TCP Listener stopped"}
+    elif proto == "kafka":
+        default_stream_listener.stop_kafka_consumer()
+        return {"status": "success", "message": "Kafka Consumer stopped"}
+    else:
+        raise HTTPException(status_code=400, detail=f"Unsupported protocol '{protocol}'")
+
+
+@app.websocket("/api/v1/ws/live-stream")
+async def websocket_live_stream(websocket: WebSocket):
+    """Real-time WebSocket endpoint streaming normalized Universal Events live."""
+    await websocket.accept()
+    queue: asyncio.Queue = asyncio.Queue()
+    loop = asyncio.get_running_loop()
+
+    def on_event(ev: UniversalEvent):
+        loop.call_soon_threadsafe(queue.put_nowait, ev.model_dump())
+
+    default_stream_listener.add_subscriber(on_event)
+
+    try:
+        while True:
+            ev_dict = await queue.get()
+            await websocket.send_json(ev_dict)
+    except WebSocketDisconnect:
+        logger.debug("WebSocket client disconnected.")
+    except Exception as e:
+        logger.debug(f"WebSocket error: {e}")
+    finally:
+        default_stream_listener.remove_subscriber(on_event)
+
 
 
