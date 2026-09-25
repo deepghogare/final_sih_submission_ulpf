@@ -563,6 +563,9 @@
       <a href="http://localhost:8443" target="_blank" class="badge" style="background:#1e1b4b; color:#c7d2fe; border:1px solid #6366f1; text-decoration:none; display:flex; align-items:center; gap:6px; font-weight:600;" title="Open Wazuh SIEM SOC Console (Port 8443)">
         🛡️ Wazuh SIEM SOC
       </a>
+      <button class="btn" style="background-color:rgba(139,92,246,0.25); color:#d8b4fe; border-color:#8b5cf6;" onclick="openMerkleTreeVisualizer()">
+        🌲 Merkle Tree Inspector
+      </button>
       <button class="btn" onclick="fetchDashboardData()">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
         Refresh
@@ -693,6 +696,7 @@
         </div>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
           <button class="btn btn-primary" onclick="auditBlockchainLedger()">🛡️ Audit Chain</button>
+          <button class="btn" style="background-color:rgba(139,92,246,0.25); color:#d8b4fe; border-color:#8b5cf6;" onclick="openMerkleTreeVisualizer()">🌲 Merkle Tree Inspector</button>
           <button class="btn" onclick="sealBlockchainBlock()">⚡ Seal Block</button>
           <button class="btn" style="background-color:rgba(239,68,68,0.15); color:#fca5a5; border-color:#dc2626;" onclick="simulateTamperAttack()">⚠️ Simulate Tamper Attack</button>
           <button class="btn" style="background-color:rgba(16,185,129,0.15); color:#6ee7b7; border-color:#059669;" onclick="repairBlockchainLedger()">🔄 Repair & Sync</button>
@@ -815,6 +819,65 @@
         </div>
         <div class="modal-section-title">O(log N) Sibling Hash Audit Path</div>
         <pre class="json-box" id="modal-proof-steps"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Interactive Merkle Tree Visual Inspector Modal -->
+  <div class="modal-overlay" id="merkleTreeVisualModal">
+    <div class="modal-content" style="max-width:960px; width:95%;">
+      <div class="modal-header">
+        <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
+          <span>🌲</span> Interactive Merkle Tree Inspector & Byte Tamper Sandbox
+        </div>
+        <button class="modal-close" onclick="closeModal('merkleTreeVisualModal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; background-color:#0b1120; border:1px solid #1f293d; border-radius:8px; padding:14px; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label style="font-size:12px; font-weight:600; color:#9ca3af;">Select Block:</label>
+            <select id="merkle-block-select" class="select-filter" style="padding:6px 12px; font-weight:700;" onchange="loadMerkleTreeVisual(this.value)">
+              <option value="1">Block #1</option>
+            </select>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <span id="merkle-visual-status" class="badge badge-online" style="font-size:12px; padding:6px 12px;">🛡️ 100% UNTAMPERED</span>
+            <button class="btn btn-primary" onclick="repairBlockchainFromMerkleModal()">🛡️ Repair & Re-calc Hashes</button>
+          </div>
+        </div>
+
+        <div style="background-color:#090d16; border:1px solid #1f293d; border-radius:8px; padding:16px; margin-bottom:16px;">
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:#9ca3af; margin-bottom:8px;">
+            <div>Cryptographic Merkle Root (Root Digest):</div>
+            <div id="merkle-root-display-hash" style="font-family:monospace; color:#a78bfa; font-weight:700; word-break:break-all;">Loading...</div>
+          </div>
+          <div class="modal-section-title" style="margin-top:12px;">Merkle Tree Hash Hierarchy (Binary DAG)</div>
+          <div id="merkle-tree-nodes-container" style="display:flex; flex-direction:column; gap:12px; overflow-x:auto; padding:12px 0;">
+            <!-- Rendered visual tree nodes -->
+          </div>
+        </div>
+
+        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:8px; padding:16px;">
+          <div class="modal-section-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <span>⚡ Interactive Event Byte Tamper Sandbox</span>
+            <span style="font-size:11px; font-weight:400; color:#9ca3af;">Click "Modify Byte" to corrupt log payload and observe instant Merkle Tree red flag detection</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; margin-top:8px;">
+              <thead>
+                <tr style="font-size:11px; color:#9ca3af; text-align:left; border-bottom:1px solid #1f293d;">
+                  <th style="padding:6px;">Event ID</th>
+                  <th style="padding:6px;">SHA-256 Digest</th>
+                  <th style="padding:6px;">Integrity Status</th>
+                  <th style="padding:6px; text-align:right;">Tamper Sandbox Action</th>
+                </tr>
+              </thead>
+              <tbody id="merkle-events-tamper-tbody">
+                <!-- Event rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1413,6 +1476,163 @@
       } catch (err) {
         showToast("Error fetching Merkle proof: " + err.message, true);
       }
+    }
+
+    async function openMerkleTreeVisualizer(blockIdx = 1, eventId = null) {
+      openModal("merkleTreeVisualModal");
+      await loadMerkleBlockOptions();
+      const select = document.getElementById("merkle-block-select");
+      if (blockIdx && select && select.querySelector(`option[value="${blockIdx}"]`)) {
+        select.value = blockIdx;
+      }
+      await loadMerkleTreeVisual(select ? select.value : (blockIdx || 1), eventId);
+    }
+
+    async function loadMerkleBlockOptions() {
+      try {
+        const res = await fetch("/api/v1/blockchain/blocks?limit=50");
+        const data = await res.json();
+        const select = document.getElementById("merkle-block-select");
+        select.innerHTML = "";
+        if (data.blocks && data.blocks.length > 0) {
+          data.blocks.forEach(b => {
+            const opt = document.createElement("option");
+            opt.value = b.index;
+            opt.innerText = `Block #${b.index} (${b.event_count} events) ${b.is_tampered ? '🚨 TAMPERED' : '✓ OK'}`;
+            select.appendChild(opt);
+          });
+        } else {
+          select.innerHTML = '<option value="1">Block #1 (Default)</option>';
+        }
+      } catch (err) {
+        console.error("Failed to load merkle block options:", err);
+      }
+    }
+
+    async function loadMerkleTreeVisual(blockIndex = 1, highlightEventId = null) {
+      try {
+        const res = await fetch(`/api/v1/blockchain/blocks/${blockIndex}/merkle-tree`);
+        if (!res.ok) {
+          showToast("Merkle tree data not found for block #" + blockIndex, true);
+          return;
+        }
+        const data = await res.json();
+
+        const statusPill = document.getElementById("merkle-visual-status");
+        if (data.is_tampered) {
+          statusPill.className = "badge";
+          statusPill.style.backgroundColor = "rgba(239, 68, 68, 0.2)";
+          statusPill.style.color = "#fca5a5";
+          statusPill.style.borderColor = "#ef4444";
+          statusPill.innerHTML = "🚨 TAMPER DETECTED (RED)";
+        } else {
+          statusPill.className = "badge badge-online";
+          statusPill.style.backgroundColor = "rgba(16, 185, 129, 0.12)";
+          statusPill.style.color = "#34d399";
+          statusPill.style.borderColor = "rgba(16, 185, 129, 0.3)";
+          statusPill.innerHTML = "🛡️ 100% UNTAMPERED (GREEN)";
+        }
+
+        const rootEl = document.getElementById("merkle-root-display-hash");
+        rootEl.innerText = data.calculated_merkle_root || data.merkle_root;
+        rootEl.style.color = data.is_tampered ? "#ef4444" : "#a78bfa";
+
+        const container = document.getElementById("merkle-tree-nodes-container");
+        container.innerHTML = "";
+
+        if (data.tree_levels && data.tree_levels.length > 0) {
+          const reversedLevels = [...data.tree_levels].reverse();
+          reversedLevels.forEach((levelHashes, lvlIdx) => {
+            const lvlRow = document.createElement("div");
+            lvlRow.style.display = "flex";
+            lvlRow.style.justifyContent = "center";
+            lvlRow.style.gap = "12px";
+            lvlRow.style.flexWrap = "wrap";
+
+            const isRootLvl = (lvlIdx === 0);
+            const isLeafLvl = (lvlIdx === reversedLevels.length - 1);
+
+            levelHashes.forEach((h, nIdx) => {
+              const nodeCard = document.createElement("div");
+              const isNodeTampered = data.is_tampered && (isRootLvl || (data.leaves && data.leaves[nIdx] && data.leaves[nIdx].tampered));
+              
+              nodeCard.style.backgroundColor = isNodeTampered ? "rgba(239, 68, 68, 0.18)" : "#111827";
+              nodeCard.style.border = isNodeTampered ? "2px solid #ef4444" : "1px solid #1f293d";
+              nodeCard.style.borderRadius = "6px";
+              nodeCard.style.padding = "8px 12px";
+              nodeCard.style.minWidth = "180px";
+              nodeCard.style.textAlign = "center";
+
+              let titleText = isRootLvl ? "👑 Merkle Root" : (isLeafLvl ? `🍃 Leaf Node #${nIdx + 1}` : `🌿 Branch Node`);
+              nodeCard.innerHTML = `
+                <div style="font-size:10px; font-weight:700; color:${isNodeTampered ? '#fca5a5' : '#9ca3af'}; margin-bottom:4px;">${titleText}</div>
+                <div style="font-size:10px; font-family:monospace; color:${isNodeTampered ? '#ef4444' : '#60a5fa'}; word-break:break-all;">${h.substring(0, 16)}...</div>
+              `;
+              lvlRow.appendChild(nodeCard);
+            });
+            container.appendChild(lvlRow);
+          });
+        }
+
+        const tbody = document.getElementById("merkle-events-tamper-tbody");
+        tbody.innerHTML = "";
+        if (data.leaves && data.leaves.length > 0) {
+          data.leaves.forEach(leaf => {
+            const tr = document.createElement("tr");
+            tr.style.borderBottom = "1px solid #1f293d";
+            if (leaf.tampered || data.is_tampered) {
+              tr.style.backgroundColor = "rgba(239, 68, 68, 0.08)";
+            }
+
+            tr.innerHTML = `
+              <td style="padding:8px; font-family:monospace; font-size:11px; color:#93c5fd;">${leaf.event_id}</td>
+              <td style="padding:8px; font-family:monospace; font-size:10px; color:${leaf.tampered ? '#ef4444' : '#34d399'};">${leaf.raw_hash.substring(0, 20)}...</td>
+              <td style="padding:8px;">
+                ${leaf.tampered || data.is_tampered ? '<span class="pill pill-deny" style="padding:2px 8px; font-size:10px;">🚨 TAMPERED BYTE</span>' : '<span class="pill pill-allow" style="padding:2px 8px; font-size:10px;">✓ VERIFIED</span>'}
+              </td>
+              <td style="padding:8px; text-align:right;">
+                <button class="btn" style="padding:4px 8px; font-size:10px; background-color:rgba(239,68,68,0.2); color:#fca5a5; border-color:#dc2626;" onclick="tamperEventByteFromModal('${leaf.event_id}')">⚡ Modify Byte</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:16px; color:#9ca3af;">No events sealed in this block yet.</td></tr>';
+        }
+
+      } catch (err) {
+        console.error("Error fetching visual Merkle tree:", err);
+        showToast("Failed to load Merkle tree: " + err.message, true);
+      }
+    }
+
+    async function tamperEventByteFromModal(eventId) {
+      try {
+        const res = await fetch("/api/v1/blockchain/tamper-event", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event_id: eventId, byte_index: 0 })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`⚡ Byte modified in event ${data.event_id}! Merkle Root flagged RED.`, true);
+          const select = document.getElementById("merkle-block-select");
+          await loadMerkleBlockOptions();
+          await loadMerkleTreeVisual(select ? select.value : (data.block_index || 1));
+          fetchDashboardData();
+        } else {
+          showToast("Tamper failed: " + (data.detail || "Error"), true);
+        }
+      } catch (err) {
+        showToast("Error executing tamper attack: " + err.message, true);
+      }
+    }
+
+    async function repairBlockchainFromMerkleModal() {
+      await repairBlockchainLedger();
+      const select = document.getElementById("merkle-block-select");
+      await loadMerkleBlockOptions();
+      await loadMerkleTreeVisual(select ? select.value : 1);
     }
 
     function connectLiveWebSocket() {

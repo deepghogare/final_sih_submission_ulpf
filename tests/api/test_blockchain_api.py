@@ -19,7 +19,7 @@ def ensure_clean_ledger_state():
 def test_blockchain_blocks_endpoint():
     """Verify that /api/v1/blockchain/blocks returns the chain with valid blocks."""
     with TestClient(app) as client:
-        res = client.get("/api/v1/blockchain/blocks?limit=500")
+        res = client.get("/api/v1/blockchain/blocks?limit=10000")
         assert res.status_code == 200
         data = res.json()
         assert "blocks" in data
