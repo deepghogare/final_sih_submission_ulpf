@@ -28,15 +28,11 @@ class Normalizer:
         """
         # 1. Event details
         event_sec = event_dict.setdefault("event", {})
-        if "timestamp" in event_sec and event_sec["timestamp"]:
+        if "timestamp" in event_sec:
             event_sec["timestamp"] = normalize_timestamp(event_sec["timestamp"])
-        if event_sec.get("action"):
+        if "action" in event_sec:
             event_sec["action"] = normalize_action(event_sec["action"])
-        else:
-            inferred = infer_action_from_fields_and_raw(event_dict)
-            if inferred:
-                event_sec["action"] = inferred
-        if "severity" in event_sec and event_sec["severity"]:
+        if "severity" in event_sec:
             event_sec["severity"] = normalize_severity(event_sec["severity"])
 
         # 2. Source endpoint
