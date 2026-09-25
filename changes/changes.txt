@@ -42,6 +42,10 @@ click on plugins and see them tagging home devices as local, MITRE ATT&CK Badges
 
 3. **Interactive Merkle Tree & Blockchain Audit UI**
    - Add a visual Merkle tree inspector in the FastAPI web dashboard where judges can click any log block, modify a byte, and watch the tampered block flag red instantly.
+
+
+
+
 4. **High-Throughput Multiprocessing / Async Workers & Benchmarks**
    - Add multiprocessing worker pools (`ProcessPoolExecutor`) or async batching to achieve **50,000+ logs/sec** ingestion speed.
    - Include a benchmark generator script with visual charts (EPS - Events Per Second, CPU/RAM footprint comparison).
