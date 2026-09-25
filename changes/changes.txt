@@ -58,11 +58,13 @@ start the listener : "python -m app.main listen --udp-port 5140 --tcp-port 5141"
 give stream : "python scripts/stream_simulator.py --protocol udp --port 5140 --count 1000 --rate 100" : for udp
               "python scripts/stream_simulator.py --protocol tcp --port 5140 --count 1000 --rate 100" : for tcp
 
+done
 
-5. **Automated Parser Auto-Generation / Regex Rule Builder**
-   - Add an AI-assisted or regex pattern visual builder in the frontend UI so non-developers can create and test custom log parsers without touching Python code.
-6. **Built-in Log Anomaly & Rate Spike Detector**
-   - Implement lightweight statistical anomaly detection (z-score on volume spikes, unexpected null fields, format deviation alerts) before forwarding to SIEM.
+   6. **Built-in Log Anomaly & Rate Spike Detector**
+      - Implement lightweight statistical anomaly detection (z-score on volume spikes, unexpected null fields, format deviation alerts) before forwarding to SIEM.
+
+done by 25/9/26
+changes stored in change5.md
 
 ---
 
