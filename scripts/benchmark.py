@@ -202,7 +202,7 @@ def generate_benchmark_charts(results: List[Dict[str, Any]], output_dir: Path):
 
     # Chart 1: EPS Throughput
     fig, ax = plt.subplots(figsize=(10, 6))
-    colors = ["#7f8c8d", "#2980b9", "#8e44ad", "#27ae60"][:len(results)]
+    colors = ["#7f8c8d", "#27ae60"][:len(results)]
     bars = ax.bar(modes, eps_values, color=colors, width=0.5, edgecolor="black", linewidth=1.2)
 
     # Highlight 50,000 EPS target line
