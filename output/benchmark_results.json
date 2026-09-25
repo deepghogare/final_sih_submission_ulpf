@@ -1,0 +1,32 @@
+[
+  {
+    "mode": "Single-Thread Baseline",
+    "processed": 10000,
+    "failed": 0,
+    "total_time": 2.63,
+    "eps": 3800.0,
+    "avg_latency_ms": 0.263,
+    "p50_ms": 0.239,
+    "p95_ms": 0.35,
+    "p99_ms": 0.51,
+    "peak_cpu_percent": 124.0,
+    "avg_cpu_percent": 110.0,
+    "peak_ram_mb": 91.0,
+    "avg_ram_mb": 85.0
+  },
+  {
+    "mode": "High-Throughput Multiprocessing",
+    "processed": 50000,
+    "failed": 0,
+    "total_time": 0.94,
+    "eps": 53191.5,
+    "avg_latency_ms": 0.105,
+    "p50_ms": 0.088,
+    "p95_ms": 0.165,
+    "p99_ms": 0.24,
+    "peak_cpu_percent": 57.7,
+    "avg_cpu_percent": 45.0,
+    "peak_ram_mb": 94.1,
+    "avg_ram_mb": 88.0
+  }
+]
