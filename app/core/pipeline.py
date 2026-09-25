@@ -24,6 +24,7 @@ from app.storage.error_storage import ErrorStorage, default_error_storage
 from app.storage.sqlite_storage import SqliteStorage, default_sqlite_storage
 from app.integrity.blockchain import BlockchainLedger, default_blockchain_ledger
 from app.core.siem_forwarder import SiemForwarder, default_siem_forwarder
+from app.core.anomaly_detector import LogAnomalyDetector, default_anomaly_detector
 from app.metrics.metrics import MetricsTracker, default_metrics_tracker
 from app.models.universal_event import UniversalEvent, MetadataDetails, RawDetails
 from app.models.parsed_event import ParsedEvent
@@ -52,6 +53,7 @@ class Pipeline:
         blockchain: BlockchainLedger = default_blockchain_ledger,
         siem_forwarder: SiemForwarder = default_siem_forwarder,
         metrics_tracker: MetricsTracker = default_metrics_tracker,
+        anomaly_detector: LogAnomalyDetector = default_anomaly_detector,
     ):
         self.settings = settings
         self.registry = registry
@@ -66,6 +68,7 @@ class Pipeline:
         self.blockchain = blockchain
         self.siem_forwarder = siem_forwarder
         self.metrics = metrics_tracker
+        self.anomaly_detector = anomaly_detector
         self.id_tracker = EventIdTracker(max_capacity=settings.dedup_cache_size)
 
     def process_file(
@@ -189,6 +192,21 @@ class Pipeline:
                 source_file=source_name,
                 source_line=line_no
             )
+            if getattr(self.settings, "enable_anomaly_detection", True):
+                try:
+                    err_event = UniversalEvent(
+                        event_id=generate_event_id(prefix="ULPF-ERR"),
+                        schema_version="1.0",
+                        metadata=MetadataDetails(
+                            ingestion_timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                            parser=fmt,
+                            raw_event_hash=calculate_sha256(raw_text)
+                        ),
+                        raw=RawDetails(data=raw_text, format=fmt)
+                    )
+                    self.anomaly_detector.analyze(err_event)
+                except Exception:
+                    pass
             return None
 
         should_enrich = self.settings.enable_enrichment if enable_enrichment is None else enable_enrichment
@@ -289,6 +307,19 @@ class Pipeline:
             "format": parsed_event.format
         }
 
+        # 8.5 Construct candidate event & run Anomaly Detection
+        candidate_obj = None
+        try:
+            candidate_obj = UniversalEvent.model_validate(normalized_dict)
+        except Exception as e:
+            logger.debug(f"Candidate event creation error: {e}")
+
+        if candidate_obj and getattr(self.settings, "enable_anomaly_detection", True):
+            try:
+                self.anomaly_detector.analyze(candidate_obj)
+            except Exception as e:
+                logger.debug(f"Anomaly detection step skipped: {e}")
+
         # 9. Schema & Constraint Validation
         is_valid, event_obj, error_msg = self.validator.validate(normalized_dict, verify_hash=True)
         if not is_valid or event_obj is None:
@@ -303,6 +334,10 @@ class Pipeline:
                 source_line=parsed_event.source_line
             )
             return None
+
+        # Copy attached anomalies to validated event object
+        if candidate_obj and "anomalies" in candidate_obj.extensions:
+            event_obj.extensions["anomalies"] = candidate_obj.extensions["anomalies"]
 
         # 10. Persistence and Recording
         if output_writer:
