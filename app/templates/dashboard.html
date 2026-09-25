@@ -560,6 +560,10 @@
       <div class="badge badge-plugins" id="plugin-badge" onclick="showPluginsModal()">
         🔌 Plugins: <span id="active-plugin-count" style="margin-left:4px; font-weight:800;">1 Active</span>
       </div>
+      <input type="file" id="file-upload-input" style="display:none;" onchange="uploadLogFile(this)">
+      <button class="btn" style="background-color:#1e293b; border-color:#3b82f6; color:#93c5fd; font-weight:600;" onclick="document.getElementById('file-upload-input').click()">
+        📁 Upload Log File
+      </button>
       <a href="http://localhost:8443" target="_blank" class="badge" style="background:#1e1b4b; color:#c7d2fe; border:1px solid #6366f1; text-decoration:none; display:flex; align-items:center; gap:6px; font-weight:600;" title="Open Wazuh SIEM SOC Console (Port 8443)">
         🛡️ Wazuh SIEM SOC
       </a>
@@ -573,7 +577,7 @@
   <div class="container">
 
     <!-- KPI Metric Cards -->
-    <div class="kpi-grid">
+    <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
       <div class="kpi-card kpi-success">
         <div class="kpi-label">Total Ingested Events</div>
         <div class="kpi-value" id="kpi-total">0</div>
@@ -589,6 +593,11 @@
         <div class="kpi-value" id="kpi-latency">0.0 <span style="font-size:14px; font-weight:500;">ms</span></div>
         <div class="kpi-sub">End-to-end pipeline speed</div>
       </div>
+      <div class="kpi-card" style="border-top: 3px solid #ef4444;">
+        <div class="kpi-label">Log Anomalies Flagged</div>
+        <div class="kpi-value" id="kpi-anomalies" style="color:#f87171;">0</div>
+        <div class="kpi-sub">Volume spikes & null fields</div>
+      </div>
       <div class="kpi-card kpi-warning">
         <div class="kpi-label">Lossless Cryptographic Audit</div>
         <div class="kpi-value" style="color:#34d399;">100%</div>
@@ -596,30 +605,42 @@
       </div>
     </div>
 
-    <!-- Sandbox Ingestion Widget -->
-    <div class="sandbox-banner">
-      <div class="sandbox-header">
-        <div class="sandbox-title">
-          <span>⚡</span> SIEM INGESTION SANDBOX & RAW LOG TESTER
+    <!-- Built-in Log Anomaly & Rate Spike Detector Panel -->
+    <div class="table-section" style="margin-bottom: 24px; border-color: rgba(239, 68, 68, 0.3);">
+      <div class="table-controls">
+        <div class="table-title">
+          <span style="color:#ef4444;">🚨</span> BUILT-IN LOG ANOMALY & RATE SPIKE DETECTOR
         </div>
-        <div class="demo-buttons">
-          <span style="font-size:11px; color:#94a3b8; align-self:center; margin-right:4px;">Sample Templates:</span>
-          <button class="btn-demo" onclick="injectDemo('fortinet')" title="Load Fortinet Syslog into input">📋 Load Fortinet Sample</button>
-          <button class="btn-demo" onclick="injectDemo('snort')" title="Load Snort IDS alert into input">📋 Load Snort IDS</button>
-          <button class="btn-demo" onclick="injectDemo('acme')" title="Load Acme NGFW (Plugin) log into input">📋 Load Acme NGFW</button>
-          <button class="btn-demo" onclick="injectDemo('cisco')" title="Load Cisco ASA CEF into input">📋 Load Cisco ASA</button>
+        <div style="display:flex; align-items:center; gap:8px;">
+          <button class="btn" style="background-color:rgba(239, 68, 68, 0.15); color:#fca5a5; border-color:#dc2626; font-size:11px;" onclick="resetAnomalyBaseline()">
+            ⚡ Reset Baseline
+          </button>
         </div>
       </div>
-      <div class="sandbox-input-row">
-        <input type="text" id="manual-log-input" class="sandbox-input" placeholder="Paste or load any raw log string here (Syslog, JSON, CEF, LEEF, Snort, CSV, XML)...">
-        <button class="btn btn-primary" onclick="ingestManualLog()">Ingest & Normalize</button>
-        <input type="file" id="file-upload-input" style="display:none;" onchange="uploadLogFile(this)">
-        <button class="btn" style="background-color:#1e293b; border-color:#475569; color:#93c5fd; font-weight:600;" onclick="document.getElementById('file-upload-input').click()">
-          📁 Upload File
-        </button>
-        <button class="btn" style="background-color:#1e293b; border-color:#dc2626; color:#fca5a5; font-weight:600;" onclick="clearAllEvents()" title="Reset and clear all events back to 0">
-          🗑️ Clear Events
-        </button>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px;">
+        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Volume Z-Score</div>
+          <div id="anomaly-zscore-val" style="font-size:20px; font-weight:700; color:#34d399; margin-top:4px;">0.00</div>
+          <div style="font-size:11px; color:#64748b;">Threshold: &ge; 3.0</div>
+        </div>
+        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Volume Spikes</div>
+          <div id="anomaly-vol-spikes" style="font-size:20px; font-weight:700; color:#f87171; margin-top:4px;">0</div>
+          <div style="font-size:11px; color:#64748b;">Z-Score burst alerts</div>
+        </div>
+        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Unexpected Null Fields</div>
+          <div id="anomaly-null-fields" style="font-size:20px; font-weight:700; color:#fbbf24; margin-top:4px;">0</div>
+          <div style="font-size:11px; color:#64748b;">Missing essential keys</div>
+        </div>
+        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px;">
+          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Format Deviations</div>
+          <div id="anomaly-fmt-deviations" style="font-size:20px; font-weight:700; color:#c084fc; margin-top:4px;">0</div>
+          <div style="font-size:11px; color:#64748b;">Structure/syntax drift</div>
+        </div>
+      </div>
+      <div id="recent-anomalies-list" style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px; max-height:160px; overflow-y:auto; font-size:12px; color:#94a3b8;">
+        <span style="color:#64748b;">No log volume spikes or field anomalies detected. System operating within normal baseline parameters.</span>
       </div>
     </div>
 
@@ -901,11 +922,70 @@
           renderPluginsPanel(plugins);
         }
 
+        // Fetch anomaly stats
+        const anomalyRes = await fetch("/api/v1/anomalies/status");
+        if (anomalyRes.ok) {
+          const anomalyData = await anomalyRes.json();
+          renderAnomalyPanel(anomalyData);
+        }
+
         // Fetch blockchain blocks
         fetchBlockchainBlocks();
 
       } catch (err) {
         console.error("Dashboard fetch error:", err);
+      }
+    }
+
+    function renderAnomalyPanel(data) {
+      if (!data) return;
+      const kpiElem = document.getElementById("kpi-anomalies");
+      if (kpiElem) kpiElem.innerText = (data.total_anomalies_detected || 0).toLocaleString();
+      
+      const zElem = document.getElementById("anomaly-zscore-val");
+      const zscore = data.current_zscore !== undefined ? data.current_zscore : (data.baseline_mean_eps > 0 ? (data.current_rate_eps - data.baseline_mean_eps) / (data.baseline_stddev || 1) : 0);
+      const zVal = Math.max(0, zscore);
+      if (zElem) {
+        zElem.innerText = zVal.toFixed(2);
+        zElem.style.color = zVal >= 3.0 ? "#f87171" : "#34d399";
+      }
+
+      const byType = data.anomalies_by_type || {};
+      const volElem = document.getElementById("anomaly-vol-spikes");
+      if (volElem) volElem.innerText = (byType.VOLUME_SPIKE || 0).toLocaleString();
+      const nullElem = document.getElementById("anomaly-null-fields");
+      if (nullElem) nullElem.innerText = (byType.UNEXPECTED_NULL_FIELD || 0).toLocaleString();
+      const fmtElem = document.getElementById("anomaly-fmt-deviations");
+      if (fmtElem) fmtElem.innerText = (byType.FORMAT_DEVIATION || 0).toLocaleString();
+
+      const alerts = data.recent_alerts || [];
+      const listContainer = document.getElementById("recent-anomalies-list");
+      if (listContainer) {
+        if (alerts.length === 0) {
+          listContainer.innerHTML = `<span style="color:#64748b;">No log volume spikes or field anomalies detected. System operating within normal baseline parameters.</span>`;
+        } else {
+          listContainer.innerHTML = alerts.map(a => `
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #1e293b; padding:6px 0;">
+              <div>
+                <span style="font-weight:700; color:${a.anomaly_type === 'VOLUME_SPIKE' ? '#f87171' : a.anomaly_type === 'UNEXPECTED_NULL_FIELD' ? '#fbbf24' : '#c084fc'}; font-size:11px;">[${a.anomaly_type}]</span>
+                <span style="color:#e2e8f0; margin-left:6px;">${a.message}</span>
+              </div>
+              <span style="font-size:10px; color:#64748b;">${a.timestamp ? a.timestamp.substring(11, 19) : ''}</span>
+            </div>
+          `).join("");
+        }
+      }
+    }
+
+    async function resetAnomalyBaseline() {
+      try {
+        const res = await fetch("/api/v1/anomalies/reset", { method: "POST" });
+        if (res.ok) {
+          showToast("Anomaly baseline reset successfully!");
+          fetchDashboardData();
+        }
+      } catch (err) {
+        showToast("Error resetting baseline: " + err, true);
       }
     }
 
