@@ -4,7 +4,6 @@ Supports live high-throughput log ingestion over:
   - UDP (Syslog RFC 3164 / 5424)
   - TCP (Continuous streaming sockets)
   - Apache Kafka Consumer (Topics / Streams)
-Integrated with HighThroughputPipeline & AsyncBatchProcessor for 50,000+ EPS streaming ingestion.
 """
 
 import asyncio
@@ -15,7 +14,6 @@ from typing import Optional, Dict, Any, List, Callable
 from pathlib import Path
 
 from app.core.pipeline import Pipeline, default_pipeline
-from app.core.high_throughput import AsyncBatchProcessor, HighThroughputPipeline
 from app.storage.json_writer import JsonWriter
 from app.models.universal_event import UniversalEvent
 
@@ -33,6 +31,7 @@ class UDPLogProtocol(asyncio.DatagramProtocol):
             raw_text = data.decode("utf-8", errors="replace").strip()
             if not raw_text:
                 return
+            # Handle possible multi-line payload in single datagram
             lines = raw_text.splitlines()
             for line in lines:
                 clean_line = line.strip()
@@ -45,31 +44,18 @@ class UDPLogProtocol(asyncio.DatagramProtocol):
 class StreamListenerManager:
     """
     Manager for real-time streaming ingestion listeners (UDP, TCP, Kafka).
-    Coordinates background asyncio loops and worker threads with High-Throughput Async Workers.
+    Coordinates background asyncio loops and worker threads.
     """
 
     def __init__(
         self,
         pipeline: Pipeline = default_pipeline,
         output_writer: Optional[JsonWriter] = None,
-        enable_enrichment: bool = False,
-        use_high_throughput: bool = False,
-        batch_size: int = 2500,
-        flush_interval: float = 0.05
+        enable_enrichment: bool = False
     ):
         self.pipeline = pipeline
         self.output_writer = output_writer
         self.enable_enrichment = enable_enrichment
-        self.use_high_throughput = use_high_throughput
-        self.batch_size = batch_size
-        self.flush_interval = flush_interval
-
-        self.async_processor: Optional[AsyncBatchProcessor] = None
-        if self.use_high_throughput:
-            self.async_processor = AsyncBatchProcessor(
-                batch_size=self.batch_size,
-                flush_interval=self.flush_interval
-            )
 
         self.udp_transport: Optional[asyncio.DatagramTransport] = None
         self.tcp_server: Optional[asyncio.Server] = None
@@ -100,53 +86,36 @@ class StreamListenerManager:
             self.subscribers.remove(callback)
 
     def dispatch_raw_event(self, raw_text: str, source: str = "stream") -> Optional[UniversalEvent]:
-        """
-        Ingest a single raw log event string.
-        Routes through AsyncBatchProcessor when high-throughput mode is enabled.
-        """
+        """Ingest a single raw log event string through the master pipeline."""
         self.events_received_stream += 1
+        event = self.pipeline.process_raw_event(
+            raw_text=raw_text,
+            enable_enrichment=self.enable_enrichment,
+            source_name=source
+        )
 
-        if self.use_high_throughput and self.async_processor and self.async_processor.is_running:
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(self.async_processor.push_event(raw_text))
-            except RuntimeError:
-                # Fallback if no running loop in current thread
-                event = self.pipeline.process_raw_event(raw_text=raw_text, enable_enrichment=self.enable_enrichment, source_name=source)
-                if event:
-                    self.events_processed_stream += 1
-                return event
+        if event:
             self.events_processed_stream += 1
-            return None
-        else:
-            event = self.pipeline.process_raw_event(
-                raw_text=raw_text,
-                enable_enrichment=self.enable_enrichment,
-                source_name=source
-            )
-            if event:
-                self.events_processed_stream += 1
-                if self.output_writer:
-                    try:
-                        self.output_writer.write_event(event)
-                    except Exception as e:
-                        logger.error(f"Failed to write live event to output writer: {e}")
+            if self.output_writer:
+                try:
+                    self.output_writer.write_event(event)
+                except Exception as e:
+                    logger.error(f"Failed to write live event to output writer: {e}")
 
-                for sub in self.subscribers:
-                    try:
-                        sub(event)
-                    except Exception as e:
-                        logger.debug(f"Error in listener subscriber callback: {e}")
-            return event
+            # Notify live subscribers (e.g. WebSockets)
+            for sub in self.subscribers:
+                try:
+                    sub(event)
+                except Exception as e:
+                    logger.debug(f"Error in listener subscriber callback: {e}")
+
+        return event
 
     async def start_udp_listener(self, host: str = "0.0.0.0", port: int = 5140):
         """Start non-blocking UDP Datagram Listener on specified port."""
         if self._running_udp:
             logger.warning("UDP listener is already running.")
             return
-
-        if self.use_high_throughput and self.async_processor and not self.async_processor.is_running:
-            await self.async_processor.start()
 
         loop = asyncio.get_running_loop()
         transport, _ = await loop.create_datagram_endpoint(
@@ -156,7 +125,7 @@ class StreamListenerManager:
         self.udp_transport = transport
         self.udp_port = port
         self._running_udp = True
-        logger.info(f"UDP Log Listener active on {host}:{port} (High-Throughput: {self.use_high_throughput})")
+        logger.info(f"UDP Log Listener active on {host}:{port}")
 
     async def stop_udp_listener(self):
         """Stop UDP Listener."""
@@ -164,8 +133,6 @@ class StreamListenerManager:
             self.udp_transport.close()
             self.udp_transport = None
         self._running_udp = False
-        if self.async_processor and self.async_processor.is_running and not self._running_tcp:
-            await self.async_processor.stop()
         logger.info("UDP Log Listener stopped.")
 
     async def _handle_tcp_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
@@ -198,14 +165,11 @@ class StreamListenerManager:
             logger.warning("TCP listener is already running.")
             return
 
-        if self.use_high_throughput and self.async_processor and not self.async_processor.is_running:
-            await self.async_processor.start()
-
         server = await asyncio.start_server(self._handle_tcp_client, host, port)
         self.tcp_server = server
         self.tcp_port = port
         self._running_tcp = True
-        logger.info(f"TCP Log Listener active on {host}:{port} (High-Throughput: {self.use_high_throughput})")
+        logger.info(f"TCP Log Listener active on {host}:{port}")
 
     async def stop_tcp_listener(self):
         """Stop TCP Listener."""
@@ -217,9 +181,6 @@ class StreamListenerManager:
             except Exception:
                 pass
             self.tcp_server = None
-
-        if self.async_processor and self.async_processor.is_running and not self._running_udp:
-            await self.async_processor.stop()
         logger.info("TCP Log Listener stopped.")
 
     def start_kafka_consumer(self, bootstrap_servers: str = "localhost:9092", topic: str = "raw-logs", group_id: str = "ulpf-consumer"):
@@ -236,6 +197,7 @@ class StreamListenerManager:
             self._running_kafka = True
             logger.info(f"Kafka Consumer initializing for broker '{bootstrap_servers}', topic '{topic}'...")
 
+            # Attempt soft import of confluent_kafka or kafka-python
             try:
                 from kafka import KafkaConsumer
                 consumer = KafkaConsumer(
@@ -278,7 +240,6 @@ class StreamListenerManager:
 
     def get_status(self) -> Dict[str, Any]:
         """Get live status summary of all active listeners."""
-        proc_processed = self.async_processor.total_processed if self.async_processor else 0
         return {
             "udp": {
                 "active": self._running_udp,
@@ -293,14 +254,9 @@ class StreamListenerManager:
                 "bootstrap_servers": self.kafka_bootstrap,
                 "topic": self.kafka_topic,
             },
-            "high_throughput": {
-                "enabled": self.use_high_throughput,
-                "batch_size": self.batch_size,
-                "async_processed": proc_processed
-            },
             "stats": {
                 "events_received": self.events_received_stream,
-                "events_processed": self.events_processed_stream + proc_processed,
+                "events_processed": self.events_processed_stream,
                 "subscribers_count": len(self.subscribers)
             }
         }

@@ -270,10 +270,6 @@ def cmd_listen(args):
     writer = JsonWriter(output_path)
     default_stream_listener.output_writer = writer
     default_stream_listener.enable_enrichment = args.enrich
-    default_stream_listener.use_high_throughput = not getattr(args, "no_high_throughput", False)
-    if default_stream_listener.use_high_throughput and not default_stream_listener.async_processor:
-        from app.core.high_throughput import AsyncBatchProcessor
-        default_stream_listener.async_processor = AsyncBatchProcessor(batch_size=2500, flush_interval=0.05)
 
     print("=" * 60)
     print(" ULPF REAL-TIME STREAMING INGESTION ENGINE ACTIVE")
@@ -281,7 +277,6 @@ def cmd_listen(args):
     print(f" Output Location  : {output_path}")
     print(f" UDP Syslog Port  : {args.udp_port}")
     print(f" TCP Syslog Port  : {args.tcp_port}")
-    print(f" High-Throughput  : {'ACTIVE (50,000+ EPS Async ProcessPool)' if default_stream_listener.use_high_throughput else 'DISABLED (Single-Thread)'}")
     if args.kafka_topic:
         print(f" Kafka Broker     : {args.kafka_bootstrap} (Topic: {args.kafka_topic})")
     print(" Press Ctrl+C to stop listening.")
@@ -381,7 +376,6 @@ def main():
     p_lst.add_argument("--kafka-topic", default=None, help="Kafka topic to consume from (optional)")
     p_lst.add_argument("-o", "--output", help="Output JSONL path for streamed events")
     p_lst.add_argument("--enrich", action="store_true", help="Enable offline asset database enrichment")
-    p_lst.add_argument("--no-high-throughput", action="store_true", help="Disable high-throughput async process pool batching")
     p_lst.set_defaults(func=cmd_listen)
 
     args = parser.parse_args()
