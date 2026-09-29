@@ -15,6 +15,7 @@ import os
 import sqlite3
 import threading
 import logging
+import random
 
 logger = logging.getLogger("ULPF.Blockchain")
 
@@ -416,32 +417,71 @@ class BlockchainLedger:
                     "is_valid": MerkleTree.verify_proof(target_hash, proof, block_json["merkle_root"]) if proof is not None else False
                 }
 
-    def simulate_tamper(self, block_index: int = 1) -> bool:
+    def simulate_tamper(self, block_index: Optional[int] = None) -> Dict[str, Any]:
         """
         Simulates an insider database attack by altering a historical block's hash.
+        Randomly selects a block if no block_index is provided.
         Used to demonstrate real-time tamper-evident alerting for SIH evaluations.
         """
         with self._lock:
             with self._get_connection() as conn:
-                cur = conn.execute("SELECT block_index, block_json FROM blockchain_ledger WHERE block_index = ?", (block_index,))
-                row = cur.fetchone()
-                if not row:
-                    block_index = 0
-                    cur = conn.execute("SELECT block_index, block_json FROM blockchain_ledger WHERE block_index = 0")
-                    row = cur.fetchone()
+                cur = conn.execute("SELECT block_index, block_json FROM blockchain_ledger ORDER BY block_index ASC")
+                rows = cur.fetchall()
+                if not rows:
+                    return {"status": "error", "message": "No blocks present in ledger to tamper."}
 
+                available_indices = [r["block_index"] for r in rows]
+                # Target a recent block so the user sees it in the top 20 block UI stream
+                if block_index is None or block_index not in available_indices or block_index <= 0:
+                    non_genesis = [idx for idx in available_indices if idx > 0]
+                    target_idx = random.choice(non_genesis[-15:]) if non_genesis else random.choice(available_indices)
+                else:
+                    target_idx = block_index
+
+                cur = conn.execute("SELECT block_index, block_json FROM blockchain_ledger WHERE block_index = ?", (target_idx,))
+                row = cur.fetchone()
+                
                 fake_hash = "deadbeef" * 8
                 b_dict = json.loads(row["block_json"]) if (row and row["block_json"]) else {}
+                original_hash = b_dict.get("block_hash", "0" * 64)
+                
                 b_dict["block_hash"] = fake_hash
                 b_dict["is_tampered"] = True
+                b_dict["original_hash"] = original_hash
 
                 conn.execute(
                     "UPDATE blockchain_ledger SET block_hash = ?, block_json = ?, is_tampered = 1 WHERE block_index = ?",
-                    (fake_hash, json.dumps(b_dict), block_index)
+                    (fake_hash, json.dumps(b_dict), target_idx)
                 )
                 conn.commit()
-                logger.warning(f"SIMULATED TAMPER APPLIED to Block #{block_index}!")
-                return True
+                logger.warning(f"SIMULATED TAMPER APPLIED to Block #{target_idx}!")
+
+                # Build Merkle Tree structure for UI visualization
+                event_ids = b_dict.get("event_ids", [])
+                leaf_hashes = [hashlib.sha256(str(eid).encode("utf-8")).hexdigest() for eid in event_ids] if event_ids else [fake_hash[:64]]
+                tree = MerkleTree(leaf_hashes)
+
+                # Recalculate real header hash
+                b_idx = target_idx
+                ts = b_dict.get("timestamp", "")
+                p_hash = b_dict.get("prev_hash", "")
+                m_root = b_dict.get("merkle_root", tree.root)
+                cnt = b_dict.get("event_count", len(event_ids))
+                calc_header = f"{b_idx}|{ts}|{p_hash}|{m_root}|{cnt}"
+                expected_real_hash = hashlib.sha256(calc_header.encode("utf-8")).hexdigest()
+
+                return {
+                    "status": "tamper_injected",
+                    "target_block": target_idx,
+                    "fake_hash": fake_hash,
+                    "original_hash": expected_real_hash,
+                    "prev_hash": p_hash,
+                    "merkle_root": m_root,
+                    "event_count": cnt,
+                    "event_ids": event_ids,
+                    "merkle_levels": tree.levels,
+                    "message": f"Block #{target_idx} hash was corrupted to demonstrate real-time Merkle tree tamper detection!"
+                }
 
     def repair_tamper(self) -> int:
         """

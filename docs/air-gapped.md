@@ -30,7 +30,7 @@ On a machine with internet access and matching Python version (Python 3.12, Linu
 
 ```bash
 # Clone or prepare the project directory
-cd ulpf-python
+cd ULPF
 
 # Create the wheelhouse directory
 mkdir wheelhouse
@@ -49,11 +49,11 @@ Verify that `wheelhouse/` contains the `.whl` files for:
 ---
 
 ### Step 2: Transfer to Air-Gapped Secure Host
-Copy the entire `ulpf-python/` directory (including `wheelhouse/`) to an approved read-only transfer medium (e.g. encrypted optical disk, screened USB storage device) according to your organization's air-gap data diode protocols.
+Copy the entire `ULPF/` directory (including `wheelhouse/`) to an approved read-only transfer medium (e.g. encrypted optical disk, screened USB storage device) according to your organization's air-gap data diode protocols.
 
 Move the directory to the air-gapped server:
 ```bash
-cp -r /media/usb/ulpf-python /opt/ulpf
+cp -r /media/usb/ULPF /opt/ulpf
 cd /opt/ulpf
 ```
 
@@ -64,10 +64,10 @@ Execute `pip install` in offline mode pointing to the local `wheelhouse/` direct
 
 ```bash
 # Linux / macOS
-pip install --no-index --find-links=wheelhouse -r requirements-offline.txt
+pip install --no-index --find-links=wheelhouse -r requirements.txt
 
 # Windows PowerShell
-python -m pip install --no-index --find-links=wheelhouse -r requirements-offline.txt
+python -m pip install --no-index --find-links=wheelhouse -r requirements.txt
 ```
 
 ---

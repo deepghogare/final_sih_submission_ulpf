@@ -76,6 +76,9 @@ def test_blockchain_merkle_proof_endpoint():
         assert ingest_res.status_code == 200
         event_id = ingest_res.json()["event_id"]
 
+        # Seal the block so the event is put into a merkle tree
+        client.post("/api/v1/blockchain/seal")
+
         # Request proof
         proof_res = client.get(f"/api/v1/blockchain/proof/{event_id}")
         assert proof_res.status_code == 200

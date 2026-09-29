@@ -3,1560 +3,772 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ULPF - Cyber Operations & SIEM Dashboard</title>
-  <!-- Chart.js from CDN with resilient error fallback -->
+  <title>ULPF | Security Operations Center</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     :root {
-      --bg-dark: #090d16;
-      --card-bg: #111827;
-      --card-border: #1f293d;
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --primary: #3b82f6;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ef4444;
-      --purple: #8b5cf6;
-      --cyan: #06b6d4;
+      --bg-base: #0d1117;
+      --bg-surface: #161b22;
+      --bg-surface-hover: #21262d;
+      --border-subtle: #30363d;
+      --border-active: #8b949e;
+      --text-main: #c9d1d9;
+      --text-muted: #8b949e;
+      --accent-blue: #58a6ff;
+      --accent-blue-bg: rgba(88, 166, 255, 0.1);
+      --accent-green: #3fb950;
+      --accent-green-bg: rgba(63, 185, 80, 0.1);
+      --accent-yellow: #d29922;
+      --accent-yellow-bg: rgba(210, 153, 34, 0.1);
+      --accent-red: #f85149;
+      --accent-red-bg: rgba(248, 81, 73, 0.15);
+      --accent-purple: #bc8cff;
+      --accent-purple-bg: rgba(188, 140, 255, 0.1);
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      scrollbar-width: thin;
-      scrollbar-color: #334155 #0b1120;
-    }
-    ::-webkit-scrollbar {
-      width: 6px;
-      height: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #0b1120;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #334155;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #475569;
-    }
-    body {
-      background-color: var(--bg-dark);
-      color: var(--text-main);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      min-height: 100vh;
-      padding-bottom: 40px;
-    }
-    /* Header */
-    header {
-      background-color: rgba(17, 24, 39, 0.95);
-      border-bottom: 1px solid var(--card-border);
-      padding: 16px 28px;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-      backdrop-filter: blur(8px);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .brand-logo {
-      background: linear-gradient(135deg, #2563eb, #7c3aed);
-      color: #fff;
-      font-weight: 800;
-      font-size: 16px;
-      letter-spacing: 1px;
-      padding: 6px 12px;
-      border-radius: 6px;
-      box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
-    }
-    .brand-title {
-      font-size: 18px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    .brand-subtitle {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
-    .header-badges {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px;
-      border-radius: 9999px;
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      border: 1px solid transparent;
-    }
-    .badge-online {
-      background-color: rgba(16, 185, 129, 0.12);
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.3);
-    }
-    .badge-online .dot {
-      width: 7px;
-      height: 7px;
-      background-color: #10b981;
-      border-radius: 50%;
-      box-shadow: 0 0 8px #10b981;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.8); }
-    }
-    .badge-airgap {
-      background-color: rgba(6, 182, 212, 0.12);
-      color: #22d3ee;
-      border-color: rgba(6, 182, 212, 0.3);
-    }
-    .badge-plugins {
-      background-color: rgba(139, 92, 246, 0.12);
-      color: #a78bfa;
-      border-color: rgba(139, 92, 246, 0.3);
-      cursor: pointer;
-    }
-    .btn {
-      background-color: #1f293d;
-      color: #e5e7eb;
-      border: 1px solid #374151;
-      padding: 7px 14px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .btn:hover {
-      background-color: #374151;
-      border-color: #4b5563;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      border-color: #1d4ed8;
-      color: #fff;
-    }
-    .btn-primary:hover {
-      background: linear-gradient(135deg, #1d4ed8, #1e40af);
-    }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background-color: var(--bg-base); color: var(--text-main); font-family: var(--font-family); font-size: 13px; line-height: 1.5; }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-base); }
+    ::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--border-active); }
 
-    /* Container */
-    .container {
-      max-width: 1440px;
-      margin: 0 auto;
-      padding: 24px 20px;
-    }
+    /* Layout */
+    .app-container { display: flex; height: 100vh; overflow: hidden; }
+    .sidebar { width: 68px; background-color: var(--bg-surface); border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; align-items: center; padding-top: 20px; gap: 24px; z-index: 10; flex-shrink: 0; }
+    .sidebar-icon { color: var(--text-muted); cursor: pointer; padding: 12px; border-radius: 8px; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+    .sidebar-icon:hover, .sidebar-icon.active { background-color: var(--bg-surface-hover); color: var(--text-main); }
+    
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+    
+    /* Topbar */
+    .topbar { height: 60px; background-color: var(--bg-surface); border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between; padding: 0 24px; z-index: 5; flex-shrink: 0; }
+    .brand-title { font-size: 15px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; letter-spacing: 0.5px; }
+    .topbar-actions { display: flex; align-items: center; gap: 12px; }
+    
+    .btn { background-color: var(--bg-surface); color: var(--text-main); border: 1px solid var(--border-subtle); padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: 0.2s; }
+    .btn:hover { background-color: var(--bg-surface-hover); border-color: var(--border-active); }
+    .btn-primary { background-color: var(--accent-blue-bg); color: var(--accent-blue); border-color: var(--accent-blue); }
+    .btn-primary:hover { background-color: var(--accent-blue); color: var(--bg-base); }
+    .btn-danger { background-color: var(--accent-red-bg); color: var(--accent-red); border-color: var(--accent-red); }
+    .btn-danger:hover { background-color: var(--accent-red); color: var(--bg-base); }
+    .btn-success { background-color: var(--accent-green-bg); color: var(--accent-green); border-color: var(--accent-green); }
+    .btn-success:hover { background-color: var(--accent-green); color: var(--bg-base); }
 
-    /* KPI Row */
-    .kpi-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .kpi-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 18px 20px;
-      position: relative;
-      overflow: hidden;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    }
-    .kpi-card::before {
-      content: "";
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, var(--primary), transparent);
-    }
-    .kpi-card.kpi-success::before { background: linear-gradient(90deg, var(--success), transparent); }
-    .kpi-card.kpi-warning::before { background: linear-gradient(90deg, var(--warning), transparent); }
-    .kpi-card.kpi-purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+    .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: uppercase; border: 1px solid transparent; letter-spacing: 0.5px; }
+    .badge-online { background-color: var(--accent-green-bg); color: var(--accent-green); border-color: rgba(63, 185, 80, 0.4); }
+    .badge-airgap { background-color: var(--accent-blue-bg); color: var(--accent-blue); border-color: rgba(88, 166, 255, 0.4); }
+    
+    /* Scrollable Content */
+    .content-scroll { flex: 1; overflow-y: auto; padding: 24px 32px; display: flex; flex-direction: column; gap: 24px; }
+    
+    /* Grid Layouts */
+    .row { display: flex; gap: 24px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 320px; display: flex; flex-direction: column; gap: 24px; }
+    
+    /* Cards */
+    .card { background-color: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 20px; display: flex; flex-direction: column; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+    .card-title { font-size: 14px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    /* KPIs */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; }
+    .kpi-card { background-color: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 8px; }
+    .kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+    .kpi-value { font-size: 28px; font-weight: 600; color: var(--text-main); display: flex; align-items: baseline; gap: 6px; letter-spacing: -0.5px; }
+    .kpi-unit { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+    
+    /* Charts */
+    .chart-wrapper { position: relative; height: 220px; width: 100%; display: flex; align-items: center; justify-content: center; }
+    
+    /* Tables */
+    .table-container { overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: 8px; background-color: var(--bg-base); }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background-color: var(--bg-surface); color: var(--text-muted); font-size: 11px; font-weight: 600; text-transform: uppercase; padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); letter-spacing: 0.5px; }
+    td { padding: 14px 16px; border-bottom: 1px solid var(--border-subtle); font-size: 12px; color: var(--text-main); }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: var(--bg-surface-hover); }
+    .cell-id { font-family: monospace; color: var(--accent-blue); font-weight: 500; }
+    
+    /* Inputs & Selects */
+    .input-box, .select-box { background-color: var(--bg-base); border: 1px solid var(--border-subtle); color: var(--text-main); padding: 8px 12px; border-radius: 6px; font-size: 12px; outline: none; transition: 0.2s; }
+    .input-box:focus, .select-box:focus { border-color: var(--accent-blue); box-shadow: 0 0 0 2px var(--accent-blue-bg); }
+    
+    /* Badges / Pills */
+    .pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+    .pill-allow, .pill-permit, .pill-accept { background-color: var(--accent-green-bg); color: var(--accent-green); }
+    .pill-deny, .pill-block, .pill-critical, .pill-high { background-color: var(--accent-red-bg); color: var(--accent-red); }
+    .pill-drop, .pill-medium { background-color: var(--accent-yellow-bg); color: var(--accent-yellow); }
+    .pill-info, .pill-low { background-color: var(--accent-blue-bg); color: var(--accent-blue); }
 
-    .kpi-label {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 8px;
-    }
-    .kpi-value {
-      font-size: 26px;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      color: #f9fafb;
-    }
-    .kpi-sub {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
+    /* Blockchain Blocks */
+    .block-stream-container { display: flex; gap: 16px; overflow-x: auto; padding-bottom: 12px; }
+    .block-card { background-color: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 12px; width: 170px; flex-shrink: 0; display: flex; flex-direction: column; gap: 8px; transition: 0.2s; }
+    .block-card:hover { border-color: var(--border-active); }
+    .block-card.tampered { border-color: var(--accent-red); background-color: var(--accent-red-bg); }
+    .block-header { display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+    .block-hash { font-family: monospace; font-size: 10px; color: var(--text-main); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-    /* Sandbox / Demo Ingestion Banner */
-    .sandbox-banner {
-      background: linear-gradient(135deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
-      border: 1px solid #334155;
-      border-radius: 8px;
-      padding: 18px 20px;
-      margin-bottom: 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    }
-    .sandbox-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    .sandbox-title {
-      font-size: 14px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      color: #93c5fd;
-    }
-    .demo-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .btn-demo {
-      background-color: #1e293b;
-      color: #cbd5e1;
-      border: 1px solid #475569;
-      padding: 6px 12px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .btn-demo:hover {
-      background-color: #334155;
-      color: #fff;
-      border-color: #64748b;
-    }
-    .sandbox-input-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .sandbox-input {
-      flex: 1;
-      min-width: 260px;
-      background-color: #0b1120;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 9px 12px;
-      color: #f3f4f6;
-      font-family: monospace;
-      font-size: 12px;
-      outline: none;
-    }
-    .sandbox-input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px var(--primary);
-    }
+    /* Modals */
+    .modal-overlay { display: none; position: fixed; inset: 0; background-color: rgba(13, 17, 23, 0.85); backdrop-filter: blur(4px); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
+    .modal-content { background-color: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: 12px; width: 100%; max-width: 850px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; }
+    .modal-title { font-size: 15px; font-weight: 600; }
+    .modal-close { background: none; border: none; color: var(--text-muted); cursor: pointer; display: flex; align-items: center; padding: 4px; border-radius: 4px; transition: 0.2s; }
+    .modal-close:hover { color: var(--text-main); background-color: var(--bg-surface-hover); }
+    .modal-body { padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+    .json-box { background-color: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 16px; font-family: monospace; font-size: 12px; color: var(--text-main); overflow-x: auto; max-height: 320px; white-space: pre-wrap; word-break: break-all; }
 
-    /* Charts Grid */
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .chart-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 18px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-      display: flex;
-      flex-direction: column;
-    }
-    .chart-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 14px;
-    }
-    .chart-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: #e5e7eb;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .chart-container {
-      position: relative;
-      flex: 1;
-      min-height: 220px;
-      max-height: 250px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Events Table Section */
-    .table-section {
-      background-color: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-    }
-    .table-controls {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-    .table-title {
-      font-size: 15px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-    .search-box {
-      background-color: #0b1120;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 7px 12px;
-      color: #f3f4f6;
-      font-size: 12px;
-      width: 220px;
-      outline: none;
-    }
-    .search-box:focus {
-      border-color: var(--primary);
-    }
-    .select-filter {
-      background-color: #0b1120;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      padding: 7px 12px;
-      color: #f3f4f6;
-      font-size: 12px;
-      outline: none;
-      cursor: pointer;
-    }
-    .table-wrapper {
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      text-align: left;
-      font-size: 12px;
-    }
-    th {
-      background-color: #162032;
-      color: #94a3b8;
-      font-weight: 600;
-      padding: 10px 12px;
-      text-transform: uppercase;
-      font-size: 11px;
-      letter-spacing: 0.5px;
-      border-bottom: 1px solid #1e293b;
-    }
-    td {
-      padding: 10px 12px;
-      border-bottom: 1px solid #1a2234;
-      color: #e2e8f0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    }
-    tr:hover td {
-      background-color: rgba(30, 41, 59, 0.5);
-    }
-    .cell-id {
-      font-family: monospace;
-      font-size: 11px;
-      color: #93c5fd;
-      font-weight: 600;
-    }
-    .cell-ip {
-      font-family: monospace;
-      font-size: 11px;
-    }
-    .cell-hash {
-      font-family: monospace;
-      font-size: 10px;
-      color: #64748b;
-      cursor: pointer;
-    }
-
-    /* Badges */
-    .pill {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .pill-allow, .pill-permit, .pill-accept { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
-    .pill-deny, .pill-block { background-color: rgba(239, 68, 68, 0.15); color: #f87171; }
-    .pill-drop { background-color: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-    .pill-critical { background-color: rgba(220, 38, 38, 0.25); color: #fca5a5; font-weight: 800; }
-    .pill-high { background-color: rgba(234, 88, 12, 0.2); color: #fdba74; }
-    .pill-medium { background-color: rgba(245, 158, 11, 0.15); color: #fde047; }
-    .pill-low { background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; }
-    .pill-info { background-color: rgba(100, 116, 139, 0.15); color: #cbd5e1; }
-    .shield-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      color: #34d399;
-      font-size: 10px;
-      font-weight: 600;
-    }
-
-    /* Modal */
-    .modal-overlay {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background-color: rgba(0, 0, 0, 0.75);
-      backdrop-filter: blur(4px);
-      z-index: 100;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal-content {
-      background-color: #111827;
-      border: 1px solid #374151;
-      border-radius: 8px;
-      width: 100%;
-      max-width: 900px;
-      max-height: 85vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
-    }
-    .modal-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid #1f293d;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .modal-title {
-      font-size: 15px;
-      font-weight: 700;
-    }
-    .modal-close {
-      background: none;
-      border: none;
-      color: #9ca3af;
-      font-size: 20px;
-      cursor: pointer;
-    }
-    .modal-body {
-      padding: 20px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .json-box {
-      background-color: #0b1120;
-      border: 1px solid #1f293d;
-      border-radius: 6px;
-      padding: 14px;
-      font-family: monospace;
-      font-size: 11px;
-      color: #e2e8f0;
-      overflow-x: auto;
-      max-height: 280px;
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
-    .modal-section-title {
-      font-size: 12px;
-      font-weight: 700;
-      color: #93c5fd;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 6px;
-    }
-
-    /* Toast Notification */
-    #toast {
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      background-color: #1e293b;
-      color: #fff;
-      padding: 12px 18px;
-      border-radius: 6px;
-      border-left: 4px solid var(--primary);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
-      display: none;
-      z-index: 200;
-      font-size: 13px;
-      font-weight: 600;
-      animation: slideUp 0.3s ease;
-    }
-    @keyframes slideUp {
-      from { transform: translateY(20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
+    /* Toast */
+    #toast { position: fixed; bottom: 32px; right: 32px; background-color: var(--bg-surface); color: var(--text-main); padding: 14px 20px; border-radius: 8px; border: 1px solid var(--border-subtle); border-left: 4px solid var(--accent-blue); box-shadow: 0 8px 24px rgba(0,0,0,0.3); display: none; z-index: 200; font-size: 13px; font-weight: 500; }
+    
+    /* Utilities */
+    .text-success { color: var(--accent-green); }
+    .text-danger { color: var(--accent-red); }
+    .text-warning { color: var(--accent-yellow); }
+    .text-primary { color: var(--accent-blue); }
+    .text-purple { color: var(--accent-purple); }
+    .flex-between { display: flex; justify-content: space-between; align-items: center; }
+    .gap-2 { display: flex; gap: 12px; align-items: center; }
   </style>
 </head>
 <body>
 
-  <!-- Header -->
-  <header>
-    <div class="brand">
-      <div class="brand-logo">ULPF</div>
-      <div>
-        <div class="brand-title">CYBER OPERATIONS & SIEM DASHBOARD</div>
-        <div class="brand-subtitle">Universal Log Pre-processing Framework // SIH 2026 (NTRO)</div>
-      </div>
-    </div>
-    <div class="header-badges">
-      <div class="badge badge-online">
-        <span class="dot"></span> Ingestion Engine Active
-      </div>
-      <div class="badge badge-airgap">Air-Gapped Mode</div>
-      <div class="badge badge-plugins" id="plugin-badge" onclick="showPluginsModal()">
-        🔌 Plugins: <span id="active-plugin-count" style="margin-left:4px; font-weight:800;">1 Active</span>
-      </div>
-      <input type="file" id="file-upload-input" style="display:none;" onchange="uploadLogFile(this)">
-      <button class="btn" style="background-color:#1e293b; border-color:#3b82f6; color:#93c5fd; font-weight:600;" onclick="document.getElementById('file-upload-input').click()">
-        📁 Upload Log File
-      </button>
-      <a href="http://localhost:8443" target="_blank" class="badge" style="background:#1e1b4b; color:#c7d2fe; border:1px solid #6366f1; text-decoration:none; display:flex; align-items:center; gap:6px; font-weight:600;" title="Open Wazuh SIEM SOC Console (Port 8443)">
-        🛡️ Wazuh SIEM SOC
-      </a>
-      <button class="btn" onclick="fetchDashboardData()">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        Refresh
-      </button>
-    </div>
-  </header>
-
-  <div class="container">
-
-    <!-- KPI Metric Cards -->
-    <div class="kpi-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-      <div class="kpi-card kpi-success">
-        <div class="kpi-label">Total Ingested Events</div>
-        <div class="kpi-value" id="kpi-total">0</div>
-        <div class="kpi-sub">Indexed in local SQLite store</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Real-Time Throughput</div>
-        <div class="kpi-value" id="kpi-eps">0.0 <span style="font-size:14px; font-weight:500;">EPS</span></div>
-        <div class="kpi-sub">Events processed per second</div>
-      </div>
-      <div class="kpi-card kpi-purple">
-        <div class="kpi-label">Average Latency</div>
-        <div class="kpi-value" id="kpi-latency">0.0 <span style="font-size:14px; font-weight:500;">ms</span></div>
-        <div class="kpi-sub">End-to-end pipeline speed</div>
-      </div>
-      <div class="kpi-card" style="border-top: 3px solid #ef4444;">
-        <div class="kpi-label">Log Anomalies Flagged</div>
-        <div class="kpi-value" id="kpi-anomalies" style="color:#f87171;">0</div>
-        <div class="kpi-sub">Volume spikes & null fields</div>
-      </div>
-      <div class="kpi-card kpi-warning">
-        <div class="kpi-label">Lossless Cryptographic Audit</div>
-        <div class="kpi-value" style="color:#34d399;">100%</div>
-        <div class="kpi-sub">SHA-256 hashes matched</div>
-      </div>
-    </div>
-
-    <!-- Built-in Log Anomaly & Rate Spike Detector Panel -->
-    <div class="table-section" style="margin-bottom: 24px; border-color: rgba(239, 68, 68, 0.3);">
-      <div class="table-controls">
-        <div class="table-title">
-          <span style="color:#ef4444;">🚨</span> BUILT-IN LOG ANOMALY & RATE SPIKE DETECTOR
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button class="btn" style="background-color:rgba(239, 68, 68, 0.15); color:#fca5a5; border-color:#dc2626; font-size:11px;" onclick="resetAnomalyBaseline()">
-            ⚡ Reset Baseline
-          </button>
-        </div>
-      </div>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px;">
-        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px;">
-          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Volume Z-Score</div>
-          <div id="anomaly-zscore-val" style="font-size:20px; font-weight:700; color:#34d399; margin-top:4px;">0.00</div>
-          <div style="font-size:11px; color:#64748b;">Threshold: &ge; 2.0</div>
-        </div>
-        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px;">
-          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Volume Spikes</div>
-          <div id="anomaly-vol-spikes" style="font-size:20px; font-weight:700; color:#f87171; margin-top:4px;">0</div>
-          <div style="font-size:11px; color:#64748b;">Z-Score burst alerts</div>
-        </div>
-        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px;">
-          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Unexpected Null Fields</div>
-          <div id="anomaly-null-fields" style="font-size:20px; font-weight:700; color:#fbbf24; margin-top:4px;">0</div>
-          <div style="font-size:11px; color:#64748b;">Missing essential keys</div>
-        </div>
-        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px;">
-          <div style="font-size:11px; color:#94a3b8; font-weight:600; text-transform:uppercase;">Format Deviations</div>
-          <div id="anomaly-fmt-deviations" style="font-size:20px; font-weight:700; color:#c084fc; margin-top:4px;">0</div>
-          <div style="font-size:11px; color:#64748b;">Structure/syntax drift</div>
-        </div>
-      </div>
-      <div id="recent-anomalies-list" style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px; max-height:160px; overflow-y:auto; font-size:12px; color:#94a3b8;">
-        <span style="color:#64748b;">No log volume spikes or field anomalies detected. System operating within normal baseline parameters.</span>
-      </div>
-    </div>
-
-    <!-- Dynamic Plug-and-Play Extensions Panel -->
-    <div class="table-section" style="margin-bottom: 24px;">
-      <div class="table-controls">
-        <div class="table-title">
-          <span style="color:#a78bfa;">🔌</span> DYNAMIC PLUG-AND-PLAY EXTENSIONS & VENDOR PLUGINS
-        </div>
-        <div style="display:flex; align-items:center; gap:8px;">
-          <button class="btn" style="background-color:rgba(139,92,246,0.15); color:#c4b5fd; border-color:#7c3aed; font-size:11px;" onclick="reloadPluginsLive()">
-            🔄 Hot-Reload Plugins
-          </button>
-        </div>
-      </div>
-      <div id="plugins-list-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
-        <div style="color:#64748b; font-size:12px; padding:10px;">Scanning plugins directory...</div>
-      </div>
-    </div>
-
-    <!-- Visualizations Grid (Chart.js) -->
-    <div class="charts-grid">
-      <!-- Enforcement Actions -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <div class="chart-title">Enforcement Actions</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="actionsChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Threat Severity -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <div class="chart-title">Severity Distribution</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="severityChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Top Source IPs -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <div class="chart-title">Top Origin Endpoints</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="sourcesChart"></canvas>
-        </div>
-      </div>
-
-      <!-- Multi-Vendor Distribution -->
-      <div class="chart-card">
-        <div class="chart-header">
-          <div class="chart-title">Multi-Vendor Breakdown</div>
-        </div>
-        <div class="chart-container">
-          <canvas id="vendorsChart"></canvas>
-        </div>
-      </div>
-    </div>
-
-    <!-- Blockchain Ledger & Chain of Custody Section -->
-    <div class="table-section" style="margin-bottom:24px;">
-      <div class="table-controls">
-        <div class="table-title">
-          <span style="font-size:16px;">⛓️</span>
-          <span>Cryptographic Blockchain Ledger (Chain of Custody)</span>
-          <span id="chain-status-pill" class="pill pill-allow" style="padding:4px 10px; font-size:10px; margin-left:8px;">✓ 100% UNTAMPERED</span>
-        </div>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <button class="btn btn-primary" onclick="auditBlockchainLedger()">🛡️ Audit Chain</button>
-          <button class="btn" onclick="sealBlockchainBlock()">⚡ Seal Block</button>
-          <button class="btn" style="background-color:rgba(239,68,68,0.15); color:#fca5a5; border-color:#dc2626;" onclick="simulateTamperAttack()">⚠️ Simulate Tamper Attack</button>
-          <button class="btn" style="background-color:rgba(16,185,129,0.15); color:#6ee7b7; border-color:#059669;" onclick="repairBlockchainLedger()">🔄 Repair & Sync</button>
-        </div>
-      </div>
-      <div id="chain-audit-msg" style="font-size:11px; color:#9ca3af; margin-bottom:14px; padding:8px 12px; background-color:#0b1120; border-radius:6px; border-left:3px solid #10b981;">
-        All sequential micro-blocks cryptographically chained via SHA-256 and Merkle DAG roots.
-      </div>
-      <div style="overflow-x:auto; padding-bottom:8px;">
-        <div id="blocks-stream" style="display:flex; gap:12px; min-width:min-content;">
-          <div style="color:#64748b; font-size:12px; padding:10px;">Loading blocks from ledger...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Events Stream Table Section -->
-    <div class="table-section">
-      <div class="table-controls">
-        <div class="table-title">
-          <span>🛡️</span> Normalized Universal Events Stream
-        </div>
-        <div class="filter-group">
-          <input type="text" id="filter-query" class="search-box" placeholder="Search IP, Vendor, Event ID..." oninput="debounceSearch()">
-          <select id="filter-action" class="select-filter" onchange="fetchDashboardData()">
-            <option value="">All Actions</option>
-            <option value="allow">Allow</option>
-            <option value="deny">Deny</option>
-            <option value="drop">Drop</option>
-          </select>
-          <select id="filter-severity" class="select-filter" onchange="fetchDashboardData()">
-            <option value="">All Severities</option>
-            <option value="critical">Critical</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-            <option value="info">Info</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Event ID</th>
-              <th>Timestamp</th>
-              <th>Source Endpoint</th>
-              <th>Destination</th>
-              <th>Vendor / Product</th>
-              <th>Action</th>
-              <th>Severity</th>
-              <th>Integrity (SHA-256)</th>
-              <th>Inspect</th>
-            </tr>
-          </thead>
-          <tbody id="events-tbody">
-            <tr>
-              <td colspan="9" style="text-align:center; padding:30px; color:#64748b;">
-                Loading events stream...
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
+<div class="app-container">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-icon" title="ULPF Engine" style="margin-bottom: 24px;"><i data-lucide="shield-alert" style="color:var(--accent-blue); width:28px; height:28px;"></i></div>
+    <div class="sidebar-icon active" title="Dashboard"><i data-lucide="layout-dashboard"></i></div>
+    <div class="sidebar-icon" title="Ledger Audit"><i data-lucide="link"></i></div>
+    <div class="sidebar-icon" title="Threat Intel"><i data-lucide="activity"></i></div>
+    <div class="sidebar-icon" title="Settings"><i data-lucide="settings"></i></div>
   </div>
 
-  <!-- Event Detail Modal -->
-  <div class="modal-overlay" id="eventModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <div class="modal-title" id="modal-event-id">Event Details</div>
-        <button class="modal-close" onclick="closeModal('eventModal')">&times;</button>
+  <!-- Main Content -->
+  <div class="main-content">
+    
+    <!-- Topbar -->
+    <div class="topbar">
+      <div class="brand-title">
+        <span>Security Operations Center</span>
+        <span style="color:var(--text-muted); font-size:13px; font-weight:400; margin-left:12px; border-left: 1px solid var(--border-subtle); padding-left: 12px;">Universal Log Pre-processing Framework</span>
       </div>
-      <div class="modal-body">
-        <div>
-          <div class="modal-section-title">Standardized Universal Event (Canonical Schema)</div>
-          <pre class="json-box" id="modal-canonical-json"></pre>
-        </div>
-        <div>
-          <div class="modal-section-title">Original Raw Event (Lossless Preservation)</div>
-          <pre class="json-box" id="modal-raw-json" style="color:#a7f3d0;"></pre>
-        </div>
-        <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:#9ca3af;">
-          <div>Cryptographic SHA-256 Hash: <span id="modal-hash" style="font-family:monospace; color:#93c5fd;"></span></div>
-          <div class="shield-badge">✓ Lossless Verification Confirmed</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Plugins Modal -->
-  <div class="modal-overlay" id="pluginsModal">
-    <div class="modal-content" style="max-width:650px;">
-      <div class="modal-header">
-        <div class="modal-title">Dynamic Plug-and-Play Plugins</div>
-        <button class="modal-close" onclick="closeModal('pluginsModal')">&times;</button>
-      </div>
-      <div class="modal-body" id="plugins-modal-body">
-        <!-- Injected via JS -->
-      </div>
-    </div>
-  </div>
-
-  <!-- Merkle Proof Modal -->
-  <div class="modal-overlay" id="merkleProofModal">
-    <div class="modal-content" style="max-width:700px;">
-      <div class="modal-header">
-        <div class="modal-title">Merkle Tree Audit Receipt (Selective Disclosure)</div>
-        <button class="modal-close" onclick="closeModal('merkleProofModal')">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:12px; margin-bottom:12px;">
-          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px;">Target Event ID: <span id="modal-proof-event-id" style="color:#93c5fd; font-family:monospace; font-weight:700;"></span></div>
-          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px;">Sealed in: <span id="modal-proof-block" style="color:#e2e8f0; font-family:monospace;"></span></div>
-          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px;">Block Merkle Root: <span id="modal-proof-root" style="color:#a78bfa; font-family:monospace;"></span></div>
-          <div style="font-size:11px; color:#9ca3af; margin-bottom:4px;">Event Raw SHA-256: <span id="modal-proof-hash" style="color:#34d399; font-family:monospace;"></span></div>
-          <div style="font-size:11px; font-weight:700; color:#34d399;" id="modal-proof-valid">✓ Valid Cryptographic Proof</div>
-        </div>
-        <div class="modal-section-title">O(log N) Sibling Hash Audit Path</div>
-        <pre class="json-box" id="modal-proof-steps"></pre>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast Notification -->
-  <div id="toast">Event processed successfully!</div>
-
-  <script>
-    let actionsChart = null;
-    let severityChart = null;
-    let sourcesChart = null;
-    let vendorsChart = null;
-    let activeEvents = [];
-    let searchTimer = null;
-    let eventRateHistory = [];
-    let latencyHistory = [];
-
-    function recordClientEventMetric(latencyMs) {
-      const now = performance.now();
-      if (latencyMs !== undefined && latencyMs > 0) {
-        latencyHistory.push(Number(latencyMs));
-        if (latencyHistory.length > 50) latencyHistory.shift();
-      }
-      eventRateHistory.push(now);
-      const cutoff = now - 5000;
-      while (eventRateHistory.length > 0 && eventRateHistory[0] < cutoff) {
-        eventRateHistory.shift();
-      }
-    }
-
-    function showToast(msg, isError = false) {
-      const toast = document.getElementById("toast");
-      toast.innerText = msg;
-      toast.style.borderLeftColor = isError ? "var(--danger)" : "var(--primary)";
-      toast.style.display = "block";
-      setTimeout(() => { toast.style.display = "none"; }, 3500);
-    }
-
-    function debounceSearch() {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(fetchDashboardData, 300);
-    }
-
-    function closeModal(id) {
-      document.getElementById(id).style.display = "none";
-    }
-
-    function openModal(id) {
-      document.getElementById(id).style.display = "flex";
-    }
-
-    async function fetchDashboardData() {
-      try {
-        // Fetch stats
-        const statsRes = await fetch("/api/v1/dashboard/stats");
-        if (statsRes.ok) {
-          const stats = await statsRes.json();
-          renderStats(stats);
-        }
-
-        // Fetch events with filters
-        const q = document.getElementById("filter-query").value;
-        const act = document.getElementById("filter-action").value;
-        const sev = document.getElementById("filter-severity").value;
+      <div class="topbar-actions">
+        <div class="badge badge-online"><i data-lucide="check-circle" style="width:14px; height:14px;"></i> Ingestion Engine Active</div>
+        <div class="badge badge-airgap"><i data-lucide="wifi-off" style="width:14px; height:14px;"></i> Air-Gapped Mode</div>
         
-        let url = `/api/v1/events?limit=30`;
-        if (q) url += `&query=${encodeURIComponent(q)}`;
-        if (act) url += `&action=${encodeURIComponent(act)}`;
-        if (sev) url += `&severity=${encodeURIComponent(sev)}`;
+        <input type="file" id="file-upload-input" style="display:none;" onchange="uploadLogFile(this)">
+        <button class="btn" onclick="document.getElementById('file-upload-input').click()"><i data-lucide="upload" style="width:14px; height:14px;"></i> Upload Log</button>
+        <button class="btn btn-primary" onclick="window.open('http://localhost:8443', '_blank')"><i data-lucide="external-link" style="width:14px; height:14px;"></i> Launch Wazuh</button>
+        <button class="btn" onclick="fetchDashboardData()"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> Refresh</button>
+        <button class="btn btn-danger" onclick="clearAllEvents()"><i data-lucide="trash-2" style="width:14px; height:14px;"></i> Clear Database</button>
+      </div>
+    </div>
 
-        const eventsRes = await fetch(url);
-        if (eventsRes.ok) {
-          activeEvents = await eventsRes.json();
-          renderEventsTable(activeEvents);
-        }
+    <!-- Scrollable Content -->
+    <div class="content-scroll">
+      
+      <!-- KPIs -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total Ingested Events</div>
+          <div class="kpi-value" id="kpi-total">0</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Real-Time Throughput</div>
+          <div class="kpi-value"><span id="kpi-eps">0.0</span> <span class="kpi-unit">EPS</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Average Latency</div>
+          <div class="kpi-value"><span id="kpi-latency">0.0</span> <span class="kpi-unit">ms</span></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label text-danger">Anomalies Detected</div>
+          <div class="kpi-value text-danger" id="kpi-anomalies">0</div>
+        </div>
+      </div>
 
-        // Fetch plugins
-        const plugRes = await fetch("/api/v1/plugins");
-        if (plugRes.ok) {
-          const pData = await plugRes.json();
-          const plugins = pData.plugins || [];
-          document.getElementById("active-plugin-count").innerText = `${plugins.length} Active`;
-          window._loadedPlugins = plugins;
-          renderPluginsPanel(plugins);
-        }
+      <!-- Charts Row -->
+      <div class="row">
+        <div class="card col">
+          <div class="card-header">
+            <div class="card-title"><i data-lucide="pie-chart" style="width:18px; height:18px;"></i> Enforcement Actions</div>
+          </div>
+          <div class="chart-wrapper"><canvas id="actionsChart"></canvas></div>
+        </div>
+        <div class="card col">
+          <div class="card-header">
+            <div class="card-title"><i data-lucide="bar-chart-2" style="width:18px; height:18px;"></i> Severity Distribution</div>
+          </div>
+          <div class="chart-wrapper"><canvas id="severityChart"></canvas></div>
+        </div>
+        <div class="card col">
+          <div class="card-header">
+            <div class="card-title"><i data-lucide="activity" style="width:18px; height:18px;"></i> Top Source Endpoints</div>
+          </div>
+          <div class="chart-wrapper"><canvas id="sourcesChart"></canvas></div>
+        </div>
+        <div class="card col">
+          <div class="card-header">
+            <div class="card-title"><i data-lucide="server" style="width:18px; height:18px;"></i> Vendor Breakdown</div>
+          </div>
+          <div class="chart-wrapper"><canvas id="vendorsChart"></canvas></div>
+        </div>
+      </div>
 
-        // Fetch blockchain blocks
-        fetchBlockchainBlocks();
+      <!-- Blockchain & Anomalies Row -->
+      <div class="row">
+        <!-- Blockchain -->
+        <div class="card" style="flex: 2; min-width: 550px;">
+          <div class="card-header">
+            <div class="card-title">
+              <i data-lucide="link" style="width:18px; height:18px;"></i> Cryptographic Ledger (Chain of Custody)
+              <span id="chain-status-pill" class="pill pill-allow" style="margin-left: 16px; font-size:10px;">100% UNTAMPERED</span>
+            </div>
+            <div class="gap-2">
+              <button class="btn btn-primary" onclick="auditBlockchainLedger()"><i data-lucide="shield-check" style="width:14px; height:14px;"></i> Audit Chain</button>
+              <button class="btn" onclick="sealBlockchainBlock()"><i data-lucide="lock" style="width:14px; height:14px;"></i> Seal Block</button>
+              <button class="btn btn-danger" onclick="simulateTamperAttack()"><i data-lucide="alert-triangle" style="width:14px; height:14px;"></i> Simulate Tamper</button>
+              <button class="btn btn-success" onclick="repairBlockchainLedger()"><i data-lucide="wrench" style="width:14px; height:14px;"></i> Repair Ledger</button>
+            </div>
+          </div>
+          <div id="chain-audit-msg" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">✓ Ledger Authenticity Confirmed. All blocks securely linked.</div>
+          <div class="block-stream-container" id="blocks-stream">
+            <div style="color:var(--text-muted); font-size:13px;">Loading blocks...</div>
+          </div>
 
-        // Fetch log anomaly detection status
-        fetchAnomalyStatus();
-
-      } catch (err) {
-        console.error("Dashboard fetch error:", err);
-      }
-    }
-
-    async function fetchAnomalyStatus() {
-      try {
-        const res = await fetch("/api/v1/anomalies/status");
-        if (!res.ok) return;
-        const data = await res.json();
-
-        // Update KPI
-        const kpiEl = document.getElementById("kpi-anomalies");
-        if (kpiEl) kpiEl.innerText = (data.total_anomalies_detected || 0).toLocaleString();
-
-        // Update metrics cards
-        const zEl = document.getElementById("anomaly-zscore-val");
-        if (zEl) {
-          const mean = data.baseline_mean_eps || 0;
-          const std = data.baseline_stddev || 1;
-          const curr = data.current_rate_eps || 0;
-          const zscore = std > 0 ? (curr - mean) / std : (curr > 10 ? 3.5 : 0.0);
-          zEl.innerText = zscore.toFixed(2);
-          zEl.style.color = zscore >= 2.0 ? "#f87171" : "#34d399";
-        }
-
-        const byType = data.anomalies_by_type || {};
-        const spikesEl = document.getElementById("anomaly-vol-spikes");
-        if (spikesEl) spikesEl.innerText = (byType.VOLUME_SPIKE || 0).toLocaleString();
-
-        const nullsEl = document.getElementById("anomaly-null-fields");
-        if (nullsEl) nullsEl.innerText = (byType.UNEXPECTED_NULL_FIELD || 0).toLocaleString();
-
-        const fmtsEl = document.getElementById("anomaly-fmt-deviations");
-        if (fmtsEl) fmtsEl.innerText = (byType.FORMAT_DEVIATION || 0).toLocaleString();
-
-        // Render recent alerts log list
-        const listContainer = document.getElementById("recent-anomalies-list");
-        if (listContainer) {
-          const alerts = data.recent_alerts || [];
-          if (alerts.length === 0) {
-            listContainer.innerHTML = `<span style="color:#64748b;">No log volume spikes or field anomalies detected. System operating within normal baseline parameters.</span>`;
-          } else {
-            listContainer.innerHTML = alerts.map(a => {
-              let sevColor = "#cbd5e1";
-              if (a.severity === "critical") sevColor = "#fca5a5";
-              else if (a.severity === "high") sevColor = "#fdba74";
-              else if (a.severity === "medium") sevColor = "#fde047";
-
-              let icon = "⚠️";
-              if (a.anomaly_type === "VOLUME_SPIKE") icon = "📈";
-              else if (a.anomaly_type === "UNEXPECTED_NULL_FIELD") icon = "❓";
-              else if (a.anomaly_type === "FORMAT_DEVIATION") icon = "⚡";
-
-              const timeStr = a.timestamp ? (a.timestamp.split("T")[1]?.split(".")[0] || a.timestamp) : "";
-
-              return `
-                <div style="padding:6px 0; border-bottom:1px solid #1a2234; display:flex; justify-content:space-between; align-items:center;">
-                  <div>
-                    <span style="font-weight:700; color:${sevColor};">${icon} [${a.anomaly_type}]</span>
-                    <span style="color:#e2e8f0; margin-left:6px;">${a.message}</span>
-                  </div>
-                  <span style="font-size:10px; color:#64748b; font-family:monospace;">${timeStr}</span>
-                </div>
-              `;
-            }).join("");
-          }
-        }
-      } catch (err) {
-        console.error("Error fetching anomaly status:", err);
-      }
-    }
-
-    async function resetAnomalyBaseline() {
-      try {
-        const res = await fetch("/api/v1/anomalies/reset", { method: "POST" });
-        if (res.ok) {
-          showToast("Anomaly baseline statistics reset successfully!");
-          fetchAnomalyStatus();
-        } else {
-          showToast("Failed to reset anomaly baseline.", true);
-        }
-      } catch (err) {
-        showToast("Error resetting anomaly baseline: " + err.message, true);
-      }
-    }
-
-    function renderStats(stats) {
-      // KPIs
-      const total = Number(stats.total_events || 0);
-      let eps = Number(stats.throughput_eps !== undefined ? stats.throughput_eps : 0);
-      let lat = Number(stats.average_latency_ms !== undefined ? stats.average_latency_ms : 0);
-
-      // Blend client-side latency if server has 0
-      if (lat <= 0 && latencyHistory.length > 0) {
-        lat = latencyHistory.reduce((a, b) => a + b, 0) / latencyHistory.length;
-      } else if (lat <= 0 && total > 0) {
-        lat = 0.18; // Default sub-millisecond pipeline benchmark baseline
-      }
-
-      // Check client sliding-window event rate
-      const now = performance.now();
-      const cutoff = now - 5000;
-      while (eventRateHistory.length > 0 && eventRateHistory[0] < cutoff) {
-        eventRateHistory.shift();
-      }
-      if (eventRateHistory.length > 1) {
-        const spanSec = (eventRateHistory[eventRateHistory.length - 1] - eventRateHistory[0]) / 1000.0;
-        if (spanSec > 0.05) {
-          eps = Math.max(eps, eventRateHistory.length / spanSec);
-        }
-      }
-
-      document.getElementById("kpi-total").innerText = total.toLocaleString();
-      document.getElementById("kpi-eps").innerHTML = `${eps > 0 ? eps.toFixed(1) : (total > 0 ? "5,420.0" : "0.0")} <span style="font-size:14px; font-weight:500;">EPS</span>`;
-      document.getElementById("kpi-latency").innerHTML = `${lat > 0 ? lat.toFixed(2) : (total > 0 ? "0.18" : "0.00")} <span style="font-size:14px; font-weight:500;">ms</span>`;
-
-      if (typeof Chart === "undefined") return;
-
-      // 1. Actions Chart
-      const actionLabels = Object.keys(stats.action_distribution || {});
-      const actionCounts = Object.values(stats.action_distribution || {});
-      const actionColors = actionLabels.map(l => {
-        const low = l.toLowerCase();
-        if (low.includes("allow") || low.includes("permit") || low.includes("accept")) return "#10b981";
-        if (low.includes("deny") || low.includes("block")) return "#ef4444";
-        if (low.includes("drop")) return "#f59e0b";
-        return "#3b82f6";
-      });
-
-      if (actionsChart) actionsChart.destroy();
-      const ctxAct = document.getElementById("actionsChart").getContext("2d");
-      actionsChart = new Chart(ctxAct, {
-        type: "doughnut",
-        data: {
-          labels: actionLabels.length ? actionLabels : ["None"],
-          datasets: [{
-            data: actionCounts.length ? actionCounts : [1],
-            backgroundColor: actionColors.length ? actionColors : ["#334155"],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: "right", labels: { color: "#cbd5e1", font: { size: 11 } } } }
-        }
-      });
-
-      // 2. Severity Chart
-      const sevOrder = ["critical", "high", "medium", "low", "info"];
-      const sevMap = stats.severity_distribution || {};
-      const sevLabels = [];
-      const sevCounts = [];
-      const sevColors = [];
-      sevOrder.forEach(s => {
-        if (sevMap[s] !== undefined || Object.keys(sevMap).length === 0) {
-          sevLabels.push(s.toUpperCase());
-          sevCounts.push(sevMap[s] || 0);
-          if (s === "critical") sevColors.push("#dc2626");
-          else if (s === "high") sevColors.push("#ea580c");
-          else if (s === "medium") sevColors.push("#f59e0b");
-          else if (s === "low") sevColors.push("#3b82f6");
-          else sevColors.push("#64748b");
-        }
-      });
-
-      if (severityChart) severityChart.destroy();
-      const ctxSev = document.getElementById("severityChart").getContext("2d");
-      severityChart = new Chart(ctxSev, {
-        type: "bar",
-        data: {
-          labels: sevLabels,
-          datasets: [{
-            label: "Events",
-            data: sevCounts,
-            backgroundColor: sevColors,
-            borderRadius: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } },
-            y: { ticks: { color: "#94a3b8", font: { size: 10 }, precision: 0 }, grid: { color: "#1e293b" } }
-          }
-        }
-      });
-
-      // 3. Top Source IPs Chart
-      const topSources = stats.top_sources || [];
-      const srcLabels = topSources.map(s => s.ip);
-      const srcCounts = topSources.map(s => s.count);
-
-      if (sourcesChart) sourcesChart.destroy();
-      const ctxSrc = document.getElementById("sourcesChart").getContext("2d");
-      sourcesChart = new Chart(ctxSrc, {
-        type: "bar",
-        indexAxis: "y",
-        data: {
-          labels: srcLabels.length ? srcLabels : ["None"],
-          datasets: [{
-            label: "Count",
-            data: srcCounts.length ? srcCounts : [0],
-            backgroundColor: "#3b82f6",
-            borderRadius: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { ticks: { color: "#94a3b8", font: { size: 10 }, precision: 0 }, grid: { color: "#1e293b" } },
-            y: { ticks: { color: "#94a3b8", font: { size: 10 } }, grid: { display: false } }
-          }
-        }
-      });
-
-      // 4. Vendors Chart
-      const vLabels = Object.keys(stats.top_vendors || {});
-      const vCounts = Object.values(stats.top_vendors || {});
-      const vPalette = ["#8b5cf6", "#06b6d4", "#ec4899", "#10b981", "#f59e0b"];
-
-      if (vendorsChart) vendorsChart.destroy();
-      const ctxVen = document.getElementById("vendorsChart").getContext("2d");
-      vendorsChart = new Chart(ctxVen, {
-        type: "doughnut",
-        data: {
-          labels: vLabels.length ? vLabels : ["Generic"],
-          datasets: [{
-            data: vCounts.length ? vCounts : [1],
-            backgroundColor: vPalette.slice(0, vLabels.length || 1),
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: "right", labels: { color: "#cbd5e1", font: { size: 11 } } } }
-        }
-      });
-    }
-
-    function renderEventsTable(events) {
-      const tbody = document.getElementById("events-tbody");
-      if (!events || events.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:30px; color:#64748b;">No events match the current criteria. Ingest a sample above!</td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = events.map((ev, idx) => {
-        const id = ev.event_id || "N/A";
-        const ts = ev.event?.timestamp || ev.metadata?.ingestion_timestamp || "-";
-        const src = `${ev.source?.ip || '-'}${ev.source?.port ? ':' + ev.source.port : ''}`;
-        const dst = `${ev.destination?.ip || '-'}${ev.destination?.port ? ':' + ev.destination.port : ''}`;
-        const vendor = ev.device?.vendor || "Generic";
-        const prod = ev.device?.product ? ` (${ev.device.product})` : "";
-        const act = (ev.event?.action || "unknown").toLowerCase();
-        const sev = (ev.event?.severity || "info").toLowerCase();
-        const hash = ev.metadata?.raw_event_hash ? ev.metadata.raw_event_hash.substring(0, 12) + "..." : "✓ valid";
-
-        return `
-          <tr>
-            <td class="cell-id">${id}</td>
-            <td style="color:#94a3b8; font-size:11px;">${ts}</td>
-            <td class="cell-ip">${src}</td>
-            <td class="cell-ip">${dst}</td>
-            <td><span style="font-weight:600; color:#cbd5e1;">${vendor}</span><span style="color:#64748b; font-size:11px;">${prod}</span></td>
-            <td><span class="pill pill-${act}">${act}</span></td>
-            <td><span class="pill pill-${sev}">${sev}</span></td>
-            <td>
-              <div class="shield-badge" title="SHA-256 Hash: ${ev.metadata?.raw_event_hash || ''}">
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
-                <span>${hash}</span>
+          <!-- Dynamic Compromised Block & Merkle Tree Security Audit Panel -->
+          <div id="tamper-analysis-panel" style="display:none; margin-top:24px; border: 1px solid var(--accent-red); border-radius: 8px; padding: 24px; background-color: var(--accent-red-bg);">
+            <div class="flex-between" style="margin-bottom:20px; border-bottom: 1px solid rgba(248, 81, 73, 0.2); padding-bottom: 16px;">
+              <div class="gap-2 text-danger" style="font-weight:600; font-size:15px;">
+                <i data-lucide="alert-circle" style="width:20px; height:20px;"></i> COMPROMISED BLOCK DETECTED
               </div>
-            </td>
-            <td>
-              <button class="btn" style="padding:4px 8px; font-size:10px;" onclick="inspectEvent(${idx})">Inspect</button>
-              <button class="btn" style="padding:4px 8px; font-size:10px; margin-left:4px; background-color:rgba(139,92,246,0.15); color:#c4b5fd; border-color:#7c3aed;" onclick="inspectMerkleProof('${id}')">Proof</button>
-            </td>
-          </tr>
-        `;
-      }).join("");
-    }
-
-    function inspectEvent(idx) {
-      const ev = activeEvents[idx];
-      if (!ev) return;
-
-      document.getElementById("modal-event-id").innerText = `Universal Event: ${ev.event_id}`;
-      document.getElementById("modal-canonical-json").innerText = JSON.stringify(ev, null, 2);
-      document.getElementById("modal-raw-json").innerText = ev.raw?.data || "Raw event data preserved losslessly.";
-      document.getElementById("modal-hash").innerText = ev.metadata?.raw_event_hash || "Calculated SHA-256 matches payload.";
-      openModal("eventModal");
-    }
-
-    function showPluginsModal() {
-      const modalBody = document.getElementById("plugins-modal-body");
-      const plugins = window._loadedPlugins || [];
-      if (plugins.length === 0) {
-        modalBody.innerHTML = `<p style="color:#9ca3af;">No dynamic plugins currently discovered.</p>`;
-      } else {
-        modalBody.innerHTML = plugins.map(p => `
-          <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:14px; margin-bottom:12px;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-              <span style="font-weight:700; color:#93c5fd; font-size:13px;">${p.name} v${p.version}</span>
-              <span style="font-size:11px; color:#94a3b8;">Author: ${p.author}</span>
+              <button class="btn btn-success" onclick="repairBlockchainLedger()"><i data-lucide="wrench" style="width:14px; height:14px;"></i> Auto-Repair Hash Chain</button>
             </div>
-            <p style="font-size:12px; color:#cbd5e1; margin-bottom:8px;">${p.description}</p>
-            <div style="font-size:11px; color:#64748b;">
-              Vendors: <span style="color:#a78bfa;">${p.supported_vendors.join(', ') || 'All'}</span> | 
-              Formats: <span style="color:#34d399;">${p.supported_formats.join(', ') || 'All'}</span>
+            
+            <div class="row">
+              <div class="col" style="background-color: var(--bg-base); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle); flex: 1;">
+                <div style="font-size:12px; font-weight:600; color:var(--accent-red); margin-bottom:12px;">DIAGNOSTICS <span id="tampered-block-badge" class="pill pill-critical" style="float:right;">LOCKED</span></div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Target Block: <span id="tampered-block-id" class="text-danger" style="font-weight:600;"></span></div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Tampered Hash: <br><span id="tampered-block-hash" class="text-danger" style="font-family:monospace; word-break:break-all;"></span></div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Authentic Hash: <br><span id="authentic-block-hash" class="text-success" style="font-family:monospace; word-break:break-all;"></span></div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Merkle Root: <br><span id="tampered-merkle-root" class="text-purple" style="font-family:monospace; word-break:break-all;"></span></div>
+                <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px; margin-top:12px;"><i data-lucide="info" style="width:12px; height:12px; vertical-align:middle;"></i> Cryptographic signature mismatch. Subsequent block links are quarantined.</div>
+              </div>
+              <div class="col" style="background-color: var(--bg-base); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle); flex: 2; display:flex; flex-direction:column;">
+                <div class="flex-between" style="margin-bottom:12px;">
+                  <div style="font-size:12px; font-weight:600; color:var(--accent-purple);"><i data-lucide="network" style="width:14px; height:14px; vertical-align:middle; margin-right:4px;"></i> INTERACTIVE MERKLE DAG TREE</div>
+                  <div class="gap-2">
+                    <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="zoomMerkleTree(1.2)">Zoom In</button>
+                    <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="zoomMerkleTree(0.8)">Zoom Out</button>
+                    <button class="btn" style="padding:4px 8px; font-size:11px;" onclick="resetMerkleTreeZoom()">Reset</button>
+                    <span id="merkle-zoom-level" style="font-size:11px; color:var(--text-muted); width:36px; text-align:right;">100%</span>
+                  </div>
+                </div>
+                <div style="font-size:11px; color:var(--text-muted); margin-bottom:16px;">Click any node to inspect full SHA-256 hash digest & cryptographic proof.</div>
+                <div style="flex:1; overflow:auto; position:relative; min-height: 250px; display:flex; align-items:flex-start; justify-content:center; padding-top:20px;">
+                  <div id="merkle-tree-wrapper" style="display:flex; flex-direction:column; align-items:center; gap:20px; transition: transform 0.25s ease; transform-origin: top center;"></div>
+                </div>
+              </div>
             </div>
+          </div>
+        </div>
+        
+        <!-- Anomalies -->
+        <div class="card" style="flex: 1; min-width: 350px;">
+          <div class="card-header">
+            <div class="card-title text-danger"><i data-lucide="activity" style="width:18px; height:18px;"></i> Log Anomaly Detector</div>
+            <button class="btn" onclick="resetAnomalyBaseline()"><i data-lucide="refresh-cw" style="width:14px; height:14px;"></i> Reset Baseline</button>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
+            <div style="background-color: var(--bg-base); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Volume Z-Score</div>
+              <div id="anomaly-zscore-val" style="font-size:22px; font-weight:600; color:var(--accent-green); margin-top:6px;">0.00</div>
+            </div>
+            <div style="background-color: var(--bg-base); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Volume Spikes</div>
+              <div id="anomaly-vol-spikes" style="font-size:22px; font-weight:600; color:var(--accent-red); margin-top:6px;">0</div>
+            </div>
+            <div style="background-color: var(--bg-base); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Null Fields</div>
+              <div id="anomaly-null-fields" style="font-size:22px; font-weight:600; color:var(--accent-yellow); margin-top:6px;">0</div>
+            </div>
+            <div style="background-color: var(--bg-base); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle);">
+              <div style="font-size:11px; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Format Deviations</div>
+              <div id="anomaly-fmt-deviations" style="font-size:22px; font-weight:600; color:var(--accent-purple); margin-top:6px;">0</div>
+            </div>
+          </div>
+          <div id="recent-anomalies-list" style="background-color: var(--bg-base); padding: 16px; border-radius: 8px; border: 1px solid var(--border-subtle); flex: 1; overflow-y: auto; font-size: 12px; min-height: 150px;">
+            <span style="color:var(--text-muted);">Normal baseline parameters.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Events Table Section -->
+      <div class="card" style="margin-bottom: 24px;">
+        <div class="card-header">
+          <div class="card-title"><i data-lucide="list" style="width:18px; height:18px;"></i> Normalized Events Stream</div>
+          <div class="gap-2">
+            <input type="text" id="filter-query" class="input-box" placeholder="Search IP, Vendor..." oninput="debounceSearch()">
+            <select id="filter-action" class="select-box" onchange="fetchDashboardData()">
+              <option value="">All Actions</option>
+              <option value="allow">Allow</option>
+              <option value="deny">Deny</option>
+            </select>
+            <select id="filter-severity" class="select-box" onchange="fetchDashboardData()">
+              <option value="">All Severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="info">Info</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Timestamp</th>
+                <th>Source Endpoint</th>
+                <th>Destination</th>
+                <th>Vendor / Product</th>
+                <th>Action</th>
+                <th>Severity</th>
+                <th>Integrity</th>
+                <th>Inspect</th>
+              </tr>
+            </thead>
+            <tbody id="events-tbody">
+              <tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted);">Loading events stream...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Modals -->
+<div class="modal-overlay" id="eventModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-event-id">Event Details</div>
+      <button class="modal-close" onclick="closeModal('eventModal')"><i data-lucide="x" style="width:20px; height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div>
+        <div style="font-size:12px; font-weight:600; color:var(--accent-blue); margin-bottom:8px; text-transform:uppercase;">Canonical JSON (Standardized Schema)</div>
+        <pre class="json-box" id="modal-canonical-json"></pre>
+      </div>
+      <div>
+        <div style="font-size:12px; font-weight:600; color:var(--accent-green); margin-bottom:8px; text-transform:uppercase;">Raw Log Payload</div>
+        <pre class="json-box" id="modal-raw-json" style="color:var(--accent-green);"></pre>
+      </div>
+      <div class="flex-between">
+        <div style="font-size:12px; color:var(--text-muted);">SHA-256 Digest: <span id="modal-hash" style="color:var(--accent-blue); font-family:monospace; margin-left:8px;"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="merkleProofModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Merkle Tree Audit Receipt</div>
+      <button class="modal-close" onclick="closeModal('merkleProofModal')"><i data-lucide="x" style="width:20px; height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="background-color:var(--bg-base); padding:20px; border-radius:8px; border:1px solid var(--border-subtle); margin-bottom:16px;">
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Target Event ID: <span id="modal-proof-event-id" style="color:var(--text-main); font-family:monospace; margin-left:8px;"></span></div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Sealed in Block: <span id="modal-proof-block" style="color:var(--text-main); font-family:monospace; margin-left:8px;"></span></div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Block Merkle Root: <span id="modal-proof-root" style="color:var(--accent-purple); font-family:monospace; margin-left:8px;"></span></div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:12px;">Raw Event SHA-256: <span id="modal-proof-hash" style="color:var(--accent-green); font-family:monospace; margin-left:8px;"></span></div>
+        <div id="modal-proof-valid" style="font-size:13px; font-weight:600; color:var(--accent-green);"></div>
+      </div>
+      <div style="font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase;">O(log N) Sibling Hash Audit Path</div>
+      <pre class="json-box" id="modal-proof-steps"></pre>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="merkleNodeDetailModal">
+  <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-header">
+      <div class="modal-title" id="merkle-node-modal-title">Merkle Tree Node Inspector</div>
+      <button class="modal-close" onclick="closeModal('merkleNodeDetailModal')"><i data-lucide="x" style="width:20px; height:20px;"></i></button>
+    </div>
+    <div class="modal-body">
+      <div style="background-color:var(--bg-base); padding:20px; border-radius:8px; border:1px solid var(--border-subtle);">
+        <div style="font-size:11px; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:12px;">Cryptographic Node Audit</div>
+        <div id="merkle-node-modal-status" style="margin-bottom:16px;"></div>
+        
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Hierarchy Level: <span id="merkle-node-modal-level" style="color:var(--text-main); margin-left:8px;"></span></div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:6px;">Node Label / ID: <span id="merkle-node-modal-id" style="color:var(--text-main); font-family:monospace; margin-left:8px;"></span></div>
+        <div style="font-size:12px; color:var(--text-muted); margin-bottom:8px;">Full SHA-256 Digest:</div>
+        <pre class="json-box" id="merkle-node-modal-hash" style="margin-bottom:16px; font-size:11px;"></pre>
+        
+        <div style="font-size:12px; color:var(--text-muted);">Audit Role: <span id="merkle-node-modal-role" style="color:var(--text-main); margin-left:8px;"></span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- Data Logic -->
+<script>
+  let actionsChart = null; let severityChart = null; let sourcesChart = null; let vendorsChart = null;
+  let activeEvents = []; let searchTimer = null; let merkleZoomLevel = 1.0;
+
+  function showToast(msg, isError = false) {
+    const t = document.getElementById("toast");
+    t.innerText = msg;
+    t.style.borderLeftColor = isError ? "var(--accent-red)" : "var(--accent-blue)";
+    t.style.display = "block";
+    setTimeout(() => t.style.display = "none", 4000);
+  }
+
+  function debounceSearch() { clearTimeout(searchTimer); searchTimer = setTimeout(fetchDashboardData, 300); }
+  function openModal(id) { document.getElementById(id).style.display = "flex"; }
+  function closeModal(id) { document.getElementById(id).style.display = "none"; }
+
+  async function fetchDashboardData() {
+    try {
+      const sRes = await fetch("/api/v1/dashboard/stats");
+      if (sRes.ok) renderStats(await sRes.json());
+
+      const q = document.getElementById("filter-query").value;
+      const act = document.getElementById("filter-action").value;
+      const sev = document.getElementById("filter-severity").value;
+      let url = "/api/v1/events?limit=30";
+      if (q) url += "&query=" + encodeURIComponent(q);
+      if (act) url += "&action=" + encodeURIComponent(act);
+      if (sev) url += "&severity=" + encodeURIComponent(sev);
+      
+      const eRes = await fetch(url);
+      if (eRes.ok) { activeEvents = await eRes.json(); renderEventsTable(activeEvents); }
+      
+      fetchBlockchainBlocks();
+      fetchAnomalyStatus();
+    } catch(e) {}
+  }
+
+  async function fetchAnomalyStatus() {
+    try {
+      const res = await fetch("/api/v1/anomalies/status");
+      if(!res.ok) return;
+      const data = await res.json();
+      
+      document.getElementById("kpi-anomalies").innerText = (data.total_anomalies_detected || 0).toLocaleString();
+      const zEl = document.getElementById("anomaly-zscore-val");
+      const mean = data.baseline_mean_eps || 0, std = data.baseline_stddev || 1, curr = data.current_rate_eps || 0;
+      const zscore = std > 0 ? (curr - mean)/std : (curr>10 ? 3.5 : 0);
+      zEl.innerText = zscore.toFixed(2);
+      zEl.style.color = zscore >= 2.0 ? "var(--accent-red)" : "var(--accent-green)";
+      
+      const bt = data.anomalies_by_type || {};
+      document.getElementById("anomaly-vol-spikes").innerText = bt.VOLUME_SPIKE || 0;
+      document.getElementById("anomaly-null-fields").innerText = bt.UNEXPECTED_NULL_FIELD || 0;
+      document.getElementById("anomaly-fmt-deviations").innerText = bt.FORMAT_DEVIATION || 0;
+
+      const alEl = document.getElementById("recent-anomalies-list");
+      const alerts = data.recent_alerts || [];
+      if(!alerts.length) alEl.innerHTML = '<span style="color:var(--text-muted);">System operating within normal baseline parameters. No anomalies detected.</span>';
+      else {
+        alEl.innerHTML = alerts.map(a => `
+          <div style="padding:10px 0; border-bottom:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+            <div><span style="font-weight:600; color:var(--accent-red);">[${a.anomaly_type}]</span> <span style="margin-left:8px; color:var(--text-main);">${a.message}</span></div>
+            <span style="font-family:monospace; color:var(--text-muted); font-size:11px;">${(a.timestamp||"").split("T")[1]?.split(".")[0]||a.timestamp}</span>
           </div>
         `).join("");
       }
-      openModal("pluginsModal");
-    }
+      setTimeout(lucide.createIcons, 10);
+    } catch(e) {}
+  }
 
-    async function ingestManualLog() {
-      const input = document.getElementById("manual-log-input");
-      const text = input.value.trim();
-      if (!text) {
-        showToast("Please enter a raw log string to ingest.", true);
-        return;
-      }
+  async function resetAnomalyBaseline() {
+    await fetch("/api/v1/anomalies/reset", {method:"POST"});
+    fetchAnomalyStatus();
+    showToast("Anomaly baseline reset successfully.");
+  }
 
-      try {
-        const res = await fetch("/api/v1/events", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ raw_event: text })
-        });
-        if (res.ok) {
-          const ev = await res.json();
-          const procTime = ev.metadata?.processing_time_ms || 0.18;
-          recordClientEventMetric(procTime);
-          showToast(`Event ingested! Normalized action: ${ev.event?.action || 'processed'}`);
-          input.value = "";
-          fetchDashboardData();
-        } else {
-          showToast("Failed to ingest event. Check formatting or dead-letter queue.", true);
-        }
-      } catch (err) {
-        showToast(`Error: ${err.message}`, true);
-      }
-    }
+  function renderStats(stats) {
+    document.getElementById("kpi-total").innerText = (stats.total_events||0).toLocaleString();
+    document.getElementById("kpi-eps").innerText = (stats.throughput_eps||0).toFixed(1);
+    document.getElementById("kpi-latency").innerText = (stats.average_latency_ms||0).toFixed(2);
 
-    async function uploadLogFile(inputEl) {
-      const file = inputEl.files[0];
-      if (!file) return;
-      const formData = new FormData();
-      formData.append("file", file);
-      showToast(`Uploading and processing "${file.name}"...`);
-      try {
-        const res = await fetch("/api/v1/process", {
-          method: "POST",
-          body: formData
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const count = Number(data.events_processed || 1);
-          for (let i = 0; i < Math.min(count, 50); i++) {
-            recordClientEventMetric(0.18);
-          }
-          showToast(`Successfully processed ${count} event(s) from ${data.filename}!`);
-          inputEl.value = "";
-          fetchDashboardData();
-          fetchBlockchainBlocks();
-        } else {
-          const errData = await res.json().catch(() => ({}));
-          showToast(`Failed: ${errData.detail || 'Could not parse log file'}`, true);
-        }
-      } catch (err) {
-        showToast(`Upload error: ${err.message}`, true);
-      }
-    }
+    if (typeof Chart === "undefined") return;
+    
+    Chart.defaults.color = "#8b949e";
+    Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
-    async function clearAllEvents() {
-      if (!confirm("Clear all ingested events and reset the blockchain ledger back to 0?")) return;
-      try {
-        const res = await fetch("/api/v1/events/clear", { method: "POST" });
-        if (res.ok) {
-          showToast("All events cleared! Database reset to 0.");
-          fetchDashboardData();
-          fetchBlockchainBlocks();
-        } else {
-          showToast("Failed to clear events.", true);
-        }
-      } catch (err) {
-        showToast("Error clearing events: " + err.message, true);
-      }
-    }
+    // Actions
+    const aLabels = Object.keys(stats.action_distribution||{});
+    const aCounts = Object.values(stats.action_distribution||{});
+    if(actionsChart) actionsChart.destroy();
+    actionsChart = new Chart(document.getElementById("actionsChart").getContext("2d"), {
+      type: "doughnut",
+      data: { labels: aLabels.length?aLabels:["None"], datasets: [{ data: aCounts.length?aCounts:[1], backgroundColor: ["#3fb950", "#f85149", "#d29922", "#58a6ff"], borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: "75%" }
+    });
 
-    function injectDemo(type) {
-      let sample = "";
-      let title = "";
-      if (type === "fortinet") {
-        sample = 'date=2026-09-02 time=18:00:00 devname="FGT-HQ" devid="FGT60D" type="traffic" subtype="forward" level="warning" action="deny" srcip=10.100.1.50 dstip=198.51.100.4 srcport=54123 dstport=443 proto=6 msg="Policy violation: unauthorized SSL traffic"';
-        title = "Fortinet Syslog";
-      } else if (type === "snort") {
-        sample = '[**] [1:1000001:1] ET EXPLOIT MS08-067 NetAPI RPC Request [**] [Classification: Attempted Administrator Privilege Gain] [Priority: 1] {TCP} 198.51.100.80:445 -> 10.0.0.15:445';
-        title = "Snort IDS Alert";
-      } else if (type === "acme") {
-        sample = '{"acme_src": "192.168.50.12", "acme_dst": "10.0.0.1", "acme_sport": 49152, "acme_dport": 80, "acme_disposition": "BLOCK", "acme_threat_level": "critical", "acme_proto": "TCP", "vendor": "AcmeSecurity"}';
-        title = "Acme NGFW (Plugin)";
-      } else if (type === "cisco") {
-        sample = 'CEF:0|Cisco|ASA|9.12|302014|Teardown TCP connection|6|src=172.16.1.100 dst=8.8.8.8 spt=52123 dpt=53 proto=TCP act=deny';
-        title = "Cisco ASA CEF";
-      }
+    // Severity
+    const sMap = stats.severity_distribution||{};
+    if(severityChart) severityChart.destroy();
+    severityChart = new Chart(document.getElementById("severityChart").getContext("2d"), {
+      type: "bar",
+      data: { labels: ["CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"], datasets: [{ data: [sMap.critical||0, sMap.high||0, sMap.medium||0, sMap.low||0, sMap.info||0], backgroundColor: ["#f85149", "#d29922", "#d29922", "#58a6ff", "#30363d"], borderRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { font: { size: 10 } } }, y: { grid: { color: "#30363d" }, ticks: { font: { size: 11 } } } } }
+    });
 
-      const input = document.getElementById("manual-log-input");
-      input.value = sample;
-      input.focus();
-      showToast(`Loaded ${title} sample into input box. Click 'Ingest & Normalize' to process!`);
-    }
+    // Sources
+    const src = stats.top_sources||[];
+    if(sourcesChart) sourcesChart.destroy();
+    sourcesChart = new Chart(document.getElementById("sourcesChart").getContext("2d"), {
+      type: "bar", indexAxis: "y",
+      data: { labels: src.length?src.map(s=>s.ip):["None"], datasets: [{ data: src.length?src.map(s=>s.count):[0], backgroundColor: "#58a6ff", borderRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: "#30363d" }, ticks: { font: { size: 11 } } }, y: { grid: { display: false }, ticks: { font: { size: 11 } } } } }
+    });
 
-    function renderPluginsPanel(plugins) {
-      const container = document.getElementById("plugins-list-container");
-      if (!container) return;
+    // Vendors
+    const vLabels = Object.keys(stats.top_vendors||{});
+    const vCounts = Object.values(stats.top_vendors||{});
+    if(vendorsChart) vendorsChart.destroy();
+    vendorsChart = new Chart(document.getElementById("vendorsChart").getContext("2d"), {
+      type: "doughnut",
+      data: { labels: vLabels.length?vLabels:["None"], datasets: [{ data: vCounts.length?vCounts:[1], backgroundColor: ["#bc8cff", "#58a6ff", "#3fb950", "#d29922", "#f85149"], borderWidth: 0 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right", labels: { boxWidth: 12, font: { size: 11 } } } }, cutout: "75%" }
+    });
+  }
 
-      if (!plugins || plugins.length === 0) {
-        container.innerHTML = `
-          <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:6px; padding:16px; grid-column:1/-1; text-align:center; color:#64748b;">
-            No external plugins discovered. Drop Python plugin files into the <code>plugins/</code> folder to hot-load!
-          </div>
-        `;
-        return;
-      }
+  function renderEventsTable(events) {
+    const tbody = document.getElementById("events-tbody");
+    if(!events || events.length === 0) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:40px; color:var(--text-muted);">No matching events found.</td></tr>`; return; }
+    tbody.innerHTML = events.map((ev, i) => {
+      const act = (ev.event?.action||"unknown").toLowerCase();
+      const sev = (ev.event?.severity||"info").toLowerCase();
+      const hash = ev.metadata?.raw_event_hash ? ev.metadata.raw_event_hash.substring(0,12)+"..." : "valid";
+      return `
+        <tr>
+          <td class="cell-id">${ev.event_id||"N/A"}</td>
+          <td style="color:var(--text-muted); font-size:11px;">${ev.event?.timestamp||ev.metadata?.ingestion_timestamp||"-"}</td>
+          <td style="font-family:monospace;">${ev.source?.ip||'-'}</td>
+          <td style="font-family:monospace;">${ev.destination?.ip||'-'}</td>
+          <td><span style="font-weight:500; color:var(--text-main);">${ev.device?.vendor||"Generic"}</span></td>
+          <td><span class="pill pill-${act}">${act}</span></td>
+          <td><span class="pill pill-${sev}">${sev}</span></td>
+          <td><div class="gap-2 text-success" style="font-family:monospace;"><i data-lucide="shield-check" style="width:14px;height:14px;"></i> ${hash}</div></td>
+          <td>
+            <button class="btn" style="padding:5px 10px; font-size:11px;" onclick="inspectEvent(${i})">Inspect</button>
+            <button class="btn btn-primary" style="padding:5px 10px; font-size:11px;" onclick="inspectMerkleProof('${ev.event_id}')">Proof</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+    setTimeout(lucide.createIcons, 10);
+  }
 
-      container.innerHTML = plugins.map(p => {
-        const vendors = (p.supported_vendors || []).join(", ") || "All Vendors";
-        const formats = (p.supported_formats || []).join(", ") || "All Formats";
+  function inspectEvent(i) {
+    const ev = activeEvents[i];
+    if(!ev) return;
+    document.getElementById("modal-event-id").innerText = `Universal Event: ${ev.event_id}`;
+    document.getElementById("modal-canonical-json").innerText = JSON.stringify(ev, null, 2);
+    document.getElementById("modal-raw-json").innerText = ev.raw?.data || "Raw event payload preserved losslessly.";
+    document.getElementById("modal-hash").innerText = ev.metadata?.raw_event_hash || "Valid SHA-256 Digest.";
+    openModal("eventModal");
+  }
 
-        return `
-          <div style="background-color:#0b1120; border:1px solid #1f293d; border-radius:8px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,0.25); display:flex; flex-direction:column; justify-content:space-between;">
-            <div>
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
-                <span style="font-weight:700; color:#93c5fd; font-size:13px;">${p.name} <span style="color:#64748b; font-size:11px;">v${p.version}</span></span>
-                <span class="badge badge-online" style="font-size:9px; padding:2px 8px;">🟢 ACTIVE</span>
-              </div>
-              <p style="font-size:12px; color:#cbd5e1; margin-bottom:10px; line-height:1.4;">${p.description}</p>
-            </div>
-            <div style="font-size:11px; color:#64748b; border-top:1px solid #1a2234; pt:8px; padding-top:8px;">
-              <div>Vendor Schemas: <span style="color:#a78bfa; font-weight:600;">${vendors}</span></div>
-              <div>Supported Formats: <span style="color:#34d399; font-weight:600;">${formats}</span></div>
-              <div style="margin-top:2px;">Author: <span style="color:#94a3b8;">${p.author}</span></div>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
+  async function uploadLogFile(el) {
+    const file = el.files[0]; if(!file) return;
+    const fd = new FormData(); fd.append("file", file);
+    showToast(`Uploading and processing "${file.name}"...`);
+    try {
+      const res = await fetch("/api/v1/process", {method:"POST", body:fd});
+      if(res.ok) { showToast(`Processed file successfully.`); el.value = ""; fetchDashboardData(); }
+    } catch(e) { showToast(`Error processing file: ${e.message}`, true); }
+  }
 
-    async function reloadPluginsLive() {
-      try {
-        showToast("Scanning plugins/ folder for dynamic extensions...");
-        const res = await fetch("/api/v1/plugins/reload", { method: "POST" });
-        if (res.ok) {
-          const data = await res.json();
-          showToast(`Dynamic reload complete! ${data.total_active} plugin(s) active.`);
-          fetchDashboardData();
-        } else {
-          showToast("Failed to reload plugins.", true);
-        }
-      } catch (err) {
-        showToast(`Plugin reload error: ${err.message}`, true);
-      }
-    }
-
-    async function fetchBlockchainBlocks() {
-      try {
-        const res = await fetch("/api/v1/blockchain/blocks");
-        if (!res.ok) return;
-        const data = await res.json();
-        const blocks = data.blocks || [];
-        const container = document.getElementById("blocks-stream");
-        if (blocks.length === 0) {
-          container.innerHTML = `<div style="color:#64748b; font-size:12px; padding:10px;">Genesis block initialized. Ingest events to seal blocks.</div>`;
-          return;
-        }
-
-        container.innerHTML = blocks.map(b => {
-          const isGenesis = b.index === 0;
-          const isTampered = !!b.is_tampered;
-          const label = isGenesis ? "GENESIS #0" : `BLOCK #${b.index}`;
-          const bHash = b.block_hash ? b.block_hash.substring(0, 10) + "..." : "N/A";
-          const pHash = b.prev_hash ? b.prev_hash.substring(0, 10) + "..." : "00000000...";
-          const mRoot = b.merkle_root ? b.merkle_root.substring(0, 10) + "..." : "00000000...";
-          const badgeClass = isGenesis ? "badge-airgap" : (isTampered ? "badge-critical" : "badge-online");
-          const cardBorder = isTampered ? "border: 2px solid #ef4444; background-color: rgba(239, 68, 68, 0.08);" : "background-color:#0b1120; border:1px solid #1f293d;";
-          const hashColor = isTampered ? "#f87171; font-weight:bold;" : "#93c5fd;";
-
-          return `
-            <div style="${cardBorder} border-radius:6px; padding:12px 14px; min-width:220px; box-shadow:0 2px 8px rgba(0,0,0,0.3); transition: all 0.3s ease;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                <span class="badge ${badgeClass}" style="font-size:10px;">${isTampered ? "⚠️ TAMPERED" : label}</span>
-                <span style="font-size:10px; color:#94a3b8;">${b.event_count} Evs</span>
-              </div>
-              <div style="font-size:10px; color:#64748b; font-family:monospace; margin-bottom:3px;">Hash: <span style="color:${hashColor}">${bHash}</span></div>
-              <div style="font-size:10px; color:#64748b; font-family:monospace; margin-bottom:3px;">Prev: <span style="color:#cbd5e1;">${pHash}</span></div>
-              <div style="font-size:10px; color:#64748b; font-family:monospace; margin-bottom:6px;">Root: <span style="color:#a78bfa;">${mRoot}</span></div>
-              <div style="font-size:10px; color:#475569;">${b.timestamp}</div>
-            </div>
-          `;
-        }).join("");
-      } catch (err) {
-        console.error("Blockchain blocks fetch error:", err);
-      }
-    }
-
-    async function auditBlockchainLedger() {
-      try {
-        const res = await fetch("/api/v1/blockchain/audit");
-        const data = await res.json();
-        const pill = document.getElementById("chain-status-pill");
-        const msg = document.getElementById("chain-audit-msg");
-
-        if (data.is_valid) {
-          pill.className = "pill pill-allow";
-          pill.innerText = "✓ 100% UNTAMPERED";
-          msg.style.borderLeftColor = "#10b981";
-          msg.innerText = `✓ Ledger Authenticity Confirmed: All ${data.total_blocks} blocks and ${data.total_events} events cryptographically linked.`;
-          showToast(`Blockchain audit passed: 100% untampered! (${data.total_blocks} blocks)`);
-        } else {
-          pill.className = "pill pill-critical";
-          pill.innerText = "⚠️ TAMPER DETECTED";
-          msg.style.borderLeftColor = "#ef4444";
-          msg.innerText = `⚠️ CRITICAL AUDIT FAILURE at Block #${data.broken_at_block}: ${data.reason}`;
-          showToast(`TAMPER DETECTED at Block #${data.broken_at_block}!`, true);
-        }
-      } catch (err) {
-        showToast("Error auditing blockchain: " + err.message, true);
-      }
-    }
-
-    async function sealBlockchainBlock() {
-      try {
-        const res = await fetch("/api/v1/blockchain/seal", { method: "POST" });
-        const data = await res.json();
-        showToast(data.message, !data.sealed);
-        fetchDashboardData();
-      } catch (err) {
-        showToast("Error sealing block: " + err.message, true);
-      }
-    }
-
-    async function simulateTamperAttack() {
-      try {
-        const res = await fetch("/api/v1/blockchain/simulate-tamper", { method: "POST" });
-        const data = await res.json();
-        showToast("Simulated attack injected into Block #" + data.target_block + "!", true);
-        await auditBlockchainLedger();
-        fetchBlockchainBlocks();
-      } catch (err) {
-        showToast("Error simulating tamper: " + err.message, true);
-      }
-    }
-
-    async function repairBlockchainLedger() {
-      try {
-        const res = await fetch("/api/v1/blockchain/repair", { method: "POST" });
-        const data = await res.json();
-        showToast(`Ledger repaired! Re-synchronized ${data.blocks_restored} blocks.`);
-        await auditBlockchainLedger();
-        fetchBlockchainBlocks();
-      } catch (err) {
-        showToast("Error repairing blockchain: " + err.message, true);
-      }
-    }
-
-    async function inspectMerkleProof(eventId) {
-      try {
-        const res = await fetch(`/api/v1/blockchain/proof/${eventId}`);
-        if (!res.ok) {
-          showToast(`Event '${eventId}' has not been sealed in a block yet. Ingest or seal current block!`, true);
-          return;
-        }
-        const data = await res.json();
-        document.getElementById("modal-proof-event-id").innerText = eventId;
-        document.getElementById("modal-proof-block").innerText = `Block #${data.block_index} (${data.block_hash.substring(0, 16)}...)`;
-        document.getElementById("modal-proof-root").innerText = data.merkle_root;
-        document.getElementById("modal-proof-hash").innerText = data.raw_event_hash;
-        document.getElementById("modal-proof-valid").innerText = data.is_valid ? "✓ Valid O(log N) Cryptographic Proof" : "❌ Invalid Proof";
-        document.getElementById("modal-proof-steps").innerText = JSON.stringify(data.proof, null, 2);
-        openModal("merkleProofModal");
-      } catch (err) {
-        showToast("Error fetching Merkle proof: " + err.message, true);
-      }
-    }
-
-    function connectLiveWebSocket() {
-      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${proto}//${window.location.host}/api/v1/ws/live-stream`;
-      let ws = null;
-
-      try {
-        ws = new WebSocket(wsUrl);
-        ws.onmessage = function(event) {
-          try {
-            const ev = JSON.parse(event.data);
-            const procTime = ev.metadata?.processing_time_ms || 0.18;
-            recordClientEventMetric(procTime);
-            activeEvents.unshift(ev);
-            if (activeEvents.length > 30) activeEvents.pop();
-            renderEventsTable(activeEvents);
-            fetchDashboardData();
-          } catch (e) {}
-        };
-        ws.onclose = function() {
-          setTimeout(connectLiveWebSocket, 3000);
-        };
-        ws.onerror = function() {
-          try { ws.close(); } catch (e) {}
-        };
-      } catch (e) {
-        setTimeout(connectLiveWebSocket, 5000);
-      }
-    }
-
-    // Connect real-time WebSocket stream
-    connectLiveWebSocket();
-
-    // Auto-refresh stats every 2.5 seconds
-    setInterval(fetchDashboardData, 2500);
-    // Initial fetch on page load
+  async function clearAllEvents() {
+    if(!confirm("Are you sure you want to clear all database events and reset the cryptographic ledger back to genesis?")) return;
+    await fetch("/api/v1/events/clear", {method:"POST"});
+    showToast("All data cleared successfully.");
     fetchDashboardData();
-  </script>
+  }
+
+  async function fetchBlockchainBlocks() {
+    try {
+      const res = await fetch("/api/v1/blockchain/blocks");
+      if(!res.ok) return;
+      const data = await res.json();
+      window.lastFetchedBlocks = data.blocks;
+      const el = document.getElementById("blocks-stream");
+      if(!data.blocks || !data.blocks.length) { el.innerHTML = `<div style="color:var(--text-muted); padding: 12px 0;">Genesis block initialized. Ingest events to seal blocks.</div>`; return; }
+      el.innerHTML = data.blocks.map(b => `
+        <div class="block-card ${b.is_tampered ? 'tampered' : ''}" style="cursor:pointer;" onclick="inspectBlock(${b.index})">
+          <div class="block-header">
+            <span>${b.index===0 ? 'GENESIS #0' : 'BLOCK #'+b.index}</span>
+            <span style="font-size:10px;">${b.event_count} Evs</span>
+          </div>
+          <div class="block-hash" style="color: ${b.is_tampered ? 'var(--bg-base)' : 'var(--accent-blue)'};">H: ${b.block_hash ? b.block_hash.substring(0,16)+'...' : 'N/A'}</div>
+          <div class="block-hash" style="color: ${b.is_tampered ? 'var(--bg-base)' : 'var(--accent-purple)'};">R: ${b.merkle_root ? b.merkle_root.substring(0,16)+'...' : 'N/A'}</div>
+        </div>
+      `).join("");
+    } catch(e){}
+  }
+
+  function inspectBlock(idx) {
+    const b = window.lastFetchedBlocks?.find(x => x.index === idx);
+    if (!b) return;
+    document.getElementById("modal-event-id").innerText = `Cryptographic Block #${b.index}`;
+    document.getElementById("modal-canonical-json").innerText = JSON.stringify(b, null, 2);
+    document.getElementById("eventModal").style.display = "flex";
+  }
+
+  async function auditBlockchainLedger() {
+    const res = await fetch("/api/v1/blockchain/audit");
+    const data = await res.json();
+    const pill = document.getElementById("chain-status-pill");
+    const msg = document.getElementById("chain-audit-msg");
+    if(data.is_valid) {
+      pill.className = "pill pill-allow"; pill.innerText = "100% UNTAMPERED";
+      msg.innerHTML = `<i data-lucide='check-circle' style='width:14px; height:14px; vertical-align:middle;'></i> Ledger Authenticity Confirmed. All ${data.total_blocks} blocks securely linked.`;
+      msg.style.color = "var(--text-muted)";
+      document.getElementById("tamper-analysis-panel").style.display = "none";
+    } else {
+      pill.className = "pill pill-critical"; pill.innerText = `TAMPER DETECTED AT BLOCK #${data.broken_at_block}`;
+      msg.innerHTML = `<i data-lucide='alert-triangle' style='width:14px; height:14px; vertical-align:middle;'></i> CRITICAL AUDIT FAILURE at Block #${data.broken_at_block}: ${data.reason}`;
+      msg.style.color = "var(--accent-red)";
+    }
+    setTimeout(lucide.createIcons, 10);
+  }
+
+  async function sealBlockchainBlock() {
+    const res = await fetch("/api/v1/blockchain/seal", {method:"POST"});
+    const data = await res.json();
+    showToast(data.message, !data.sealed);
+    fetchDashboardData();
+  }
+
+  async function simulateTamperAttack() {
+    const res = await fetch("/api/v1/blockchain/simulate-tamper", {method:"POST"});
+    const data = await res.json();
+    showToast(`Simulated attack injected into Block #${data.target_block||1}!`, true);
+    
+    // Render Panel
+    const panel = document.getElementById("tamper-analysis-panel");
+    panel.style.display = "block";
+    document.getElementById("tampered-block-id").innerText = `#${data.target_block||1}`;
+    document.getElementById("tampered-block-hash").innerText = data.fake_hash;
+    document.getElementById("authentic-block-hash").innerText = data.original_hash;
+    document.getElementById("tampered-merkle-root").innerText = data.merkle_root;
+    
+    // Render basic tree visualization
+    let treeHtml = `
+      <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+        <div style="font-size:11px; color:var(--accent-purple); font-weight:600; margin-bottom:6px; text-transform:uppercase;">TIER 0: MERKLE ROOT NODE</div>
+        <div onclick="inspectMerkleNode('Root Node', 'Block Root', '${data.merkle_root}', 'compromised', 'Tier 0 (Root)')"
+             style="cursor:pointer; background:var(--accent-red-bg); border:1px solid var(--accent-red); color:var(--accent-red); border-radius:8px; padding:10px 16px; font-family:monospace; font-size:12px; font-weight:600;">
+          INVALID ROOT: ${data.merkle_root.substring(0, 20)}...
+        </div>
+        <div style="width:2px; height:24px; background:linear-gradient(180deg, var(--accent-red), var(--border-active)); margin:6px 0;"></div>
+      </div>
+      
+      <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
+        <div style="font-size:11px; color:var(--accent-green); font-weight:600; margin-bottom:8px; text-transform:uppercase;">TIER 2: EVENT LEAF PAYLOADS</div>
+        <div style="display:flex; justify-content:center; gap:16px; flex-wrap:wrap;">
+    `;
+    const eids = data.event_ids || ["ULPF-EVT-BLK1"];
+    eids.forEach((eid, idx) => {
+      const isComp = (idx===0);
+      treeHtml += `
+        <div style="border:1px solid ${isComp?'var(--accent-red)':'var(--border-active)'}; background:${isComp?'var(--accent-red-bg)':'var(--bg-base)'}; padding:12px 16px; border-radius:8px; text-align:center; min-width:140px; cursor:pointer;" onclick="inspectMerkleNode('Leaf Event', '${eid}', '${isComp?data.fake_hash:'Valid Payload Hash'}', '${isComp?'compromised':'valid'}', 'Tier 2')">
+          <div style="font-size:11px; color:var(--text-muted); margin-bottom:4px;">Leaf Node #${idx+1}</div>
+          <div style="font-family:monospace; font-size:12px; color:${isComp?'var(--accent-red)':'var(--text-main)'}; font-weight:600; margin-bottom:6px;">${eid}</div>
+          <span class="pill ${isComp?'pill-critical':'pill-allow'}">${isComp?'COMPROMISED LEAF':'INTACT LEAF'}</span>
+        </div>
+      `;
+    });
+    treeHtml += `</div></div>`;
+    document.getElementById("merkle-tree-wrapper").innerHTML = treeHtml;
+    
+    panel.style.display = "block";
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    await auditBlockchainLedger();
+    fetchBlockchainBlocks();
+  }
+
+  async function repairBlockchainLedger() {
+    const res = await fetch("/api/v1/blockchain/repair", {method:"POST"});
+    const data = await res.json();
+    showToast(`Ledger repaired! Automatically re-synchronized ${data.blocks_restored} blocks.`);
+    document.getElementById("tamper-analysis-panel").style.display = "none";
+    await auditBlockchainLedger();
+    fetchBlockchainBlocks();
+  }
+
+  async function inspectMerkleProof(eventId) {
+    try {
+      const res = await fetch(`/api/v1/blockchain/proof/${eventId}`);
+      if(!res.ok) { showToast(`Event '${eventId}' has not been sealed in a block yet.`, true); return; }
+      const data = await res.json();
+      document.getElementById("modal-proof-event-id").innerText = eventId;
+      document.getElementById("modal-proof-block").innerText = `Block #${data.block_index}`;
+      document.getElementById("modal-proof-root").innerText = data.merkle_root;
+      document.getElementById("modal-proof-hash").innerText = data.raw_event_hash;
+      document.getElementById("modal-proof-valid").innerHTML = data.is_valid ? `<i data-lucide='check-circle' style='width:16px;height:16px;vertical-align:middle;margin-right:4px;'></i> Valid Cryptographic Proof (O(log N) verified)` : `Invalid Proof`;
+      document.getElementById("modal-proof-steps").innerText = JSON.stringify(data.proof, null, 2);
+      openModal("merkleProofModal");
+      setTimeout(lucide.createIcons, 10);
+    } catch(e) {}
+  }
+
+  function inspectMerkleNode(type, id, hash, status, level) {
+    document.getElementById("merkle-node-modal-level").innerText = level;
+    document.getElementById("merkle-node-modal-id").innerText = id;
+    document.getElementById("merkle-node-modal-hash").innerText = hash;
+    document.getElementById("merkle-node-modal-role").innerText = type;
+    document.getElementById("merkle-node-modal-status").innerHTML = status === "compromised" ? `<span class="pill pill-critical">COMPROMISED NODE SIGNATURE</span>` : `<span class="pill pill-allow">VALID CRYPTOGRAPHIC NODE</span>`;
+    openModal("merkleNodeDetailModal");
+  }
+
+  function zoomMerkleTree(f) {
+    merkleZoomLevel = Math.max(0.6, Math.min(2.5, merkleZoomLevel*f));
+    document.getElementById("merkle-tree-wrapper").style.transform = `scale(${merkleZoomLevel})`;
+    document.getElementById("merkle-zoom-level").innerText = `${Math.round(merkleZoomLevel*100)}%`;
+  }
+  function resetMerkleTreeZoom() {
+    merkleZoomLevel = 1.0;
+    document.getElementById("merkle-tree-wrapper").style.transform = `scale(1)`;
+    document.getElementById("merkle-zoom-level").innerText = `100%`;
+  }
+
+  function connectLiveWebSocket() {
+    try {
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const ws = new WebSocket(`${proto}//${window.location.host}/api/v1/ws/live-stream`);
+      ws.onmessage = (e) => {
+        try {
+          const ev = JSON.parse(e.data);
+          activeEvents.unshift(ev);
+          if(activeEvents.length>30) activeEvents.pop();
+          renderEventsTable(activeEvents);
+          fetchDashboardData();
+        } catch(err){}
+      };
+      ws.onclose = () => setTimeout(connectLiveWebSocket, 3000);
+      ws.onerror = () => ws.close();
+    } catch(e) { setTimeout(connectLiveWebSocket, 5000); }
+  }
+
+  lucide.createIcons();
+  connectLiveWebSocket();
+  setInterval(fetchDashboardData, 3000);
+  fetchDashboardData();
+</script>
 </body>
 </html>

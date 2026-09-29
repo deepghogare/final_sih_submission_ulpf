@@ -65,6 +65,9 @@ class SqliteStorage:
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_events_src ON universal_events(source_ip)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_events_dst ON universal_events(destination_ip)")
                 conn.execute("CREATE INDEX IF NOT EXISTS idx_events_action ON universal_events(action)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_events_created ON universal_events(created_at)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_events_severity ON universal_events(severity)")
+                conn.execute("CREATE INDEX IF NOT EXISTS idx_events_vendor ON universal_events(vendor)")
                 conn.commit()
 
     def save_event(self, event: UniversalEvent) -> None:

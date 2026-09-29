@@ -7,6 +7,7 @@ pipeline directly into Open-Source SIEM solutions (Wazuh, OpenSearch, ELK, Grayl
 from typing import Dict, Any, Optional
 from datetime import datetime, timezone
 from pathlib import Path
+import os
 import json
 import logging
 import socket
@@ -23,14 +24,15 @@ class SiemForwarder:
 
     def __init__(
         self,
-        jsonl_path: Path = Path("output/universal_events.jsonl"),
-        syslog_host: str = "127.0.0.1",
-        syslog_port: int = 514,
+        jsonl_path: Optional[Path] = None,
+        syslog_host: Optional[str] = None,
+        syslog_port: Optional[int] = None,
         enabled_syslog: bool = True
     ):
-        self.jsonl_path = Path(jsonl_path)
-        self.syslog_host = syslog_host
-        self.syslog_port = syslog_port
+        output_dir = os.getenv("ULPF_OUTPUT_DIR", "output")
+        self.jsonl_path = Path(jsonl_path) if jsonl_path else Path(output_dir) / "universal_events.jsonl"
+        self.syslog_host = syslog_host or os.getenv("ULPF_SIEM_HOST", os.getenv("SIEM_HOST", "127.0.0.1"))
+        self.syslog_port = syslog_port if syslog_port is not None else int(os.getenv("ULPF_SIEM_PORT", os.getenv("SIEM_PORT", "514")))
         self.enabled_syslog = enabled_syslog
         self._lock = threading.Lock()
         self.forwarded_count = 0

@@ -1,0 +1,39 @@
+# Git & CI/CD
+.git
+.gitignore
+.github
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Local data and output files (mounted at runtime)
+output/*
+!output/.gitkeep
+failed_events/*
+!failed_events/.gitkeep
+*.db
+*.db-shm
+*.db-wal
+*.log
+putput/
+
+# Wazuh SIEM standalone Docker cluster
+wazuh-docker/
+
+# IDE & OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

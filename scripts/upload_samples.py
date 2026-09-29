@@ -20,6 +20,9 @@ upload_file('sample_security_traffic.cef', 'test_data/sample_security_traffic.ce
 upload_file('sample_network_syslog.log', 'test_data/sample_network_syslog.log')
 upload_file('sample_cloud_audit.json', 'test_data/sample_cloud_audit.json')
 upload_file('sample_acme_guard.ndjson', 'test_data/sample_acme_guard.ndjson')
+import glob, os
+for p in sorted(glob.glob('demo_logs_for_upload/*')):
+    upload_file(os.path.basename(p), p)
 
 r = urllib.request.urlopen('http://localhost:8000/api/v1/dashboard/stats')
 stats = json.loads(r.read())

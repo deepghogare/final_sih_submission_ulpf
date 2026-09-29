@@ -215,11 +215,6 @@ class Pipeline:
             force_vendor=force_vendor,
             enable_enrichment=should_enrich
         )
-        if ev:
-            try:
-                self.blockchain.seal_block()
-            except Exception as e:
-                logger.debug(f"Blockchain sealing skipped: {e}")
         return ev
 
     def _process_single_parsed_event(

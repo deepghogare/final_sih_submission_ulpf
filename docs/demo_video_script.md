@@ -32,16 +32,16 @@
 * **Screen Display**: Scroll down to the **Blockchain Ledger** and **Live Events Stream**.
 * **Screen Action**:
   1. Click **"Inspect Merkle Proof"** on an event to show the popup with $O(\log N)$ cryptographic steps.
-  2. Click **"Simulate Tamper Attack"** -> Show Block #1 turning red with `⚠️ TAMPERED`.
+  2. Click **"Simulate Tamper Attack"** -> Show Block #1 turning red with `TAMPERED`.
   3. Click **"Audit Blockchain Ledger"** -> Show instant tamper alert.
-  4. Click **"Self-Heal / Repair Ledger"** -> Show ledger returning to `✓ 100% UNTAMPERED`.
+  4. Click **"Self-Heal / Repair Ledger"** -> Show ledger returning to `100% UNTAMPERED`.
 * **Voiceover**:
   > *"For non-repudiation and forensic compliance, every event is hashed using SHA-256 and sealed in an immutable Merkle-Tree Blockchain. Analysts can generate logarithmic zero-knowledge Merkle proofs for any log. When an insider attempts database tampering, our audit engine immediately pinpoints the exact corrupted block. Clicking Self-Heal demonstrates automated consensus recovery."*
 
 ---
 
 #### [1:20 – 1:45] Seamless SIEM & Data Lake SOC Integration
-* **Screen Display**: Click the **"🛡️ Wazuh SIEM SOC"** badge or switch to tab at `http://localhost:8443`.
+* **Screen Display**: Click the **"Wazuh SIEM SOC"** badge or switch to tab at `http://localhost:8443`.
 * **Screen Action**: Navigate to **Threat Hunting / Security Operations Events**. Show live alerts and MITRE ATT&CK techniques.
 * **Voiceover**:
   > *"ULPF seamlessly streams normalized telemetry directly into our downstream SIEM and OpenSearch Security Data Lake. In our Wazuh SOC console, high-severity exploit events immediately trigger custom ULPF detection rules, tagged with MITRE ATT&CK techniques like T1059 and T1210 without requiring manual SIEM parser development."*

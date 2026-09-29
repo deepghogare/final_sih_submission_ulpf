@@ -14,8 +14,8 @@ def test_dashboard_html_endpoints():
             response = client.get(path)
             assert response.status_code == 200
             assert "text/html" in response.headers["content-type"]
-            assert "CYBER OPERATIONS & SIEM DASHBOARD" in response.text
-            assert "Chart.js" in response.text
+            assert "ULPF | Security Operations Center" in response.text
+            assert "chart.js" in response.text
 
 
 def test_dashboard_stats_endpoint():

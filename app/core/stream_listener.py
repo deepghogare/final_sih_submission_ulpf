@@ -36,7 +36,14 @@ class UDPLogProtocol(asyncio.DatagramProtocol):
             for line in lines:
                 clean_line = line.strip()
                 if clean_line:
-                    self.manager.dispatch_raw_event(clean_line, source=f"udp://{addr[0]}:{addr[1]}")
+                    source_str = f"udp://{addr[0]}:{addr[1]}"
+                    if self.manager.udp_queue is not None:
+                        try:
+                            self.manager.udp_queue.put_nowait((clean_line, source_str))
+                        except asyncio.QueueFull:
+                            self.manager.dispatch_raw_event(clean_line, source=source_str)
+                    else:
+                        self.manager.dispatch_raw_event(clean_line, source=source_str)
         except Exception as e:
             logger.error(f"Error processing UDP datagram from {addr}: {e}")
 
@@ -70,6 +77,9 @@ class StreamListenerManager:
         self.tcp_port: Optional[int] = None
         self.kafka_bootstrap: Optional[str] = None
         self.kafka_topic: Optional[str] = None
+
+        self.udp_queue: Optional[asyncio.Queue] = None
+        self._udp_worker_task: Optional[asyncio.Task] = None
 
         self.subscribers: List[Callable[[UniversalEvent], None]] = []
 
@@ -111,6 +121,20 @@ class StreamListenerManager:
 
         return event
 
+    async def _udp_worker(self):
+        """Worker task to process queued UDP datagrams off the event loop thread."""
+        while self._running_udp:
+            try:
+                if self.udp_queue is None:
+                    break
+                raw_text, source = await self.udp_queue.get()
+                self.dispatch_raw_event(raw_text, source=source)
+                self.udp_queue.task_done()
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                logger.error(f"UDP worker processing error: {e}")
+
     async def start_udp_listener(self, host: str = "0.0.0.0", port: int = 5140):
         """Start non-blocking UDP Datagram Listener on specified port."""
         if self._running_udp:
@@ -118,21 +142,36 @@ class StreamListenerManager:
             return
 
         loop = asyncio.get_running_loop()
+        self.udp_queue = asyncio.Queue(maxsize=100000)
+
+        import socket
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 8 * 1024 * 1024)
+        except Exception:
+            pass
+        sock.bind((host, port))
+
         transport, _ = await loop.create_datagram_endpoint(
             lambda: UDPLogProtocol(self),
-            local_addr=(host, port)
+            sock=sock
         )
         self.udp_transport = transport
         self.udp_port = port
         self._running_udp = True
-        logger.info(f"UDP Log Listener active on {host}:{port}")
+        self._udp_worker_task = asyncio.create_task(self._udp_worker())
+        logger.info(f"UDP Log Listener active on {host}:{port} (Queued & SO_RCVBUF=8MB)")
 
     async def stop_udp_listener(self):
         """Stop UDP Listener."""
+        if self._udp_worker_task:
+            self._udp_worker_task.cancel()
+            self._udp_worker_task = None
         if self.udp_transport:
             self.udp_transport.close()
             self.udp_transport = None
         self._running_udp = False
+        self.udp_queue = None
         logger.info("UDP Log Listener stopped.")
 
     async def _handle_tcp_client(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):

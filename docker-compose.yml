@@ -1,0 +1,54 @@
+services:
+  ulpf-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ulpf:latest
+    container_name: ulpf-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+      - "5140:5140/udp"
+      - "5141:5141/tcp"
+    environment:
+      - ULPF_LOG_LEVEL=INFO
+      - ULPF_OUTPUT_DIR=/app/output
+      - ULPF_FAILED_DIR=/app/failed_events
+      - ULPF_DB_PATH=/app/output/ulpf_events.db
+      - ULPF_SIEM_HOST=wazuh.manager
+      - ULPF_SIEM_PORT=514
+    volumes:
+      - ./output:/app/output
+      - ./failed_events:/app/failed_events
+      - ./configs:/app/configs:ro
+      - ./plugins:/app/plugins:ro
+    networks:
+      - sih2026_default
+    command: ["python", "-m", "app.main", "serve", "--host", "0.0.0.0", "--port", "8000"]
+
+  ulpf-processor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ulpf:latest
+    container_name: ulpf-processor
+    environment:
+      - ULPF_LOG_LEVEL=INFO
+      - ULPF_OUTPUT_DIR=/app/output
+      - ULPF_FAILED_DIR=/app/failed_events
+      - ULPF_DB_PATH=/app/output/ulpf_events.db
+      - ULPF_SIEM_HOST=wazuh.manager
+      - ULPF_SIEM_PORT=514
+    volumes:
+      - ./test_data:/app/test_data:ro
+      - ./output:/app/output
+      - ./failed_events:/app/failed_events
+      - ./configs:/app/configs:ro
+      - ./plugins:/app/plugins:ro
+    networks:
+      - sih2026_default
+    command: ["python", "-m", "app.main", "process", "test_data/", "--output", "output/universal_events.jsonl"]
+
+networks:
+  sih2026_default:
+    external: true

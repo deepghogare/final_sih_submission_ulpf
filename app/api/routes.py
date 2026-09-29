@@ -257,14 +257,9 @@ def seal_pending_block():
 
 
 @app.post("/api/v1/blockchain/simulate-tamper", tags=["Blockchain"])
-def simulate_blockchain_tamper(block_index: int = 1):
-    """Simulates a database tamper attack on a block to demonstrate detection in evaluations."""
-    default_pipeline.blockchain.simulate_tamper(block_index=block_index)
-    return {
-        "status": "tamper_injected",
-        "target_block": block_index,
-        "message": "Block hash was artificially corrupted. Run audit to observe detection!"
-    }
+def simulate_blockchain_tamper(block_index: Optional[int] = None):
+    """Simulates a database tamper attack on a random or specified block to demonstrate detection."""
+    return default_pipeline.blockchain.simulate_tamper(block_index=block_index)
 
 
 @app.post("/api/v1/blockchain/repair", tags=["Blockchain"])
@@ -288,6 +283,25 @@ def clear_all_events():
 def get_siem_status():
     """Returns the live operational status and metrics of the Wazuh SIEM forwarder."""
     return default_pipeline.siem_forwarder.get_status()
+
+
+# ==============================================================================
+# Anomaly Detection Endpoints
+# ==============================================================================
+
+@app.get("/api/v1/anomalies/status", tags=["Anomaly Detection"])
+def get_anomaly_status():
+    """Returns the current anomaly detector statistics, Z-score baselines, and recent alerts."""
+    from app.core.anomaly_detector import default_anomaly_detector
+    return default_anomaly_detector.get_stats()
+
+
+@app.post("/api/v1/anomalies/reset", tags=["Anomaly Detection"])
+def reset_anomaly_baseline():
+    """Resets the anomaly detector's statistical baseline to recalibrate from current traffic."""
+    from app.core.anomaly_detector import default_anomaly_detector
+    default_anomaly_detector.reset_baseline()
+    return {"status": "reset", "message": "Anomaly baseline recalibrated successfully."}
 
 
 # ==============================================================================
@@ -364,9 +378,9 @@ async def websocket_live_stream(websocket: WebSocket):
             ev_dict = await queue.get()
             await websocket.send_json(ev_dict)
     except WebSocketDisconnect:
-        logger.debug("WebSocket client disconnected.")
+        print("WebSocket client disconnected.")
     except Exception as e:
-        logger.debug(f"WebSocket error: {e}")
+        print(f"WebSocket error: {e}")
     finally:
         default_stream_listener.remove_subscriber(on_event)
 
